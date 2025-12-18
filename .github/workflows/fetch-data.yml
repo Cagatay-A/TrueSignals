@@ -1,12 +1,9 @@
 name: Fetch Data from Local API
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -18,39 +15,36 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Fetch API Data
+      - name: Fetch API and generate api-data.json
         id: fetch
         run: |
           set -e
 
-          echo "API'den veri alınıyor..."
+          echo "Local API çağrılıyor..."
+          RESPONSE=$(curl -s http://192.168.1.3:3000/api/emirler)
 
-          API_RESPONSE=$(curl -s --max-time 20 http://192.168.1.3:3000/api/emirler)
-
-          if [ -z "$API_RESPONSE" ]; then
+          if [ -z "$RESPONSE" ]; then
+            echo "API boş cevap döndü"
             echo "success=false" >> $GITHUB_OUTPUT
             echo "count=0" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           mkdir -p public
-
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           python3 <<EOF
 import json
 
-api = json.loads('''$API_RESPONSE''')
+data = json.loads('''$RESPONSE''')
 
-emirler = []
-
-if isinstance(api, dict) and "emirler" in api:
-    emirler = api["emirler"]
-elif isinstance(api, list):
-    emirler = api
+if isinstance(data, dict) and "emirler" in data:
+    emirler = data["emirler"]
+elif isinstance(data, list):
+    emirler = data
+else:
+    emirler = []
 
 result = {
     "success": True,
@@ -77,18 +71,15 @@ EOF
           git add public/api-data.json
 
           if git diff --cached --quiet; then
-            echo "Değişiklik yok"
+            echo "Değişiklik yok, commit atlanıyor"
             exit 0
           fi
 
-          git commit -m "Update API data (${{
-            steps.fetch.outputs.count
-          }} emir)"
-
+          git commit -m "Update api-data.json"
           git push origin main
 
       - name: Summary
         run: |
-          echo "Success: ${{ steps.fetch.outputs.success }}"
-          echo "Count:   ${{ steps.fetch.outputs.count }}"
+          echo "Başarılı: ${{ steps.fetch.outputs.success }}"
+          echo "Emir sayısı: ${{ steps.fetch.outputs.count }}"
           echo "URL: https://cagatay-a.github.io/TrueSignals/api-data.json"
