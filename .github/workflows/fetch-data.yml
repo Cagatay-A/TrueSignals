@@ -1,8 +1,9 @@
+
 name: Fetch Data from Local API
 
 on:
   schedule:
-    - cron: '*/2 * * * *'  # Her 2 dakikada bir
+    - cron: '*/5 * * * *'
   push:
     branches: [ main ]
   workflow_dispatch:
@@ -21,7 +22,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
     
-    #________DEĞİŞİKLİK 2: "Fetch API Data" adımını güncelle________
     - name: Fetch API Data
       id: fetch
       run: |
@@ -37,8 +37,7 @@ jobs:
         else
           echo "success=false" >> $GITHUB_OUTPUT
         fi
-     #________DEĞİŞİKLİK 2: "Fetch API Data" adımını güncelle________
-
+    
     - name: Commit and Push
       if: steps.fetch.outputs.success == 'true'
       env:
@@ -52,20 +51,3 @@ jobs:
         git commit -m "📊 Update $(date +'%H:%M:%S')" --allow-empty
         git push origin main --force
         echo "✅ BAŞARILI"
-
-        # EN SONA EKLE (jobs.fetch-data.steps bölümünün sonuna):
-    - name: Notify Success
-      if: steps.fetch.outputs.success == 'true'
-      run: |
-        echo "🎉 Workflow başarıyla tamamlandı!"
-        echo "🔗 Verileriniz şurada görünecek:"
-        echo "   https://cagatay-a.github.io/TrueSignals/api-data.json"
-        
-    - name: Notify Failure
-      if: steps.fetch.outputs.success == 'false'
-      run: |
-        echo "❌ Workflow başarısız oldu!"
-        echo "🔍 Kontrol edin:"
-        echo "   1. Local API çalışıyor mu: http://192.168.1.3:3000"
-        echo "   2. API endpoint'i doğru mu: /api/emirler"
-        echo "   3. Network bağlantısı var mı"
