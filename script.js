@@ -1,36 +1,99 @@
-// API URL - GitHub Pages'teki JSON dosyası
-const API_URL = "https://cagatay-a.github.io/TrueSignals/api-data.json";
+// CONFIGURATION
+const API_URL = "./api-data.json";  // GitHub Pages'teki JSON dosyası
+const REFRESH_INTERVAL = 30000; // 30 seconds
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 dakika
 
-// DOM elementleri
-let table, tableBody, loading, errorMessage, refreshBtn, retryBtn, lastUpdate;
+// DOM Elements
+let emirListesi = [];
+let isInitialLoad = true;
 
-// DOM elementlerini başlat
-function initDOM() {
-    table = document.getElementById('emirlerTable');
-    tableBody = document.getElementById('tableBody');
-    loading = document.getElementById('loading');
-    errorMessage = document.getElementById('errorMessage');
-    refreshBtn = document.getElementById('refreshBtn');
-    retryBtn = document.getElementById('retryBtn');
-    lastUpdate = document.getElementById('lastUpdate');
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[INIT] TrueSignal Emir Takip Sistemi yüklendi');
+    console.log('[CONFIG] API URL:', API_URL);
+    
+    // Load initial data
+    const cacheLoaded = loadFromCache();
+    
+    setTimeout(() => {
+        loadDataFromGitHub();
+        isInitialLoad = false;
+    }, cacheLoaded ? 1000 : 0);
+    
+    // Auto refresh
+    setInterval(loadDataFromGitHub, REFRESH_INTERVAL);
+    
+    // Event listeners
+    setupEventListeners();
+    
+    // İlk yüklemede sistem durumunu göster
+    updateSystemStatus();
+});
+
+// Setup event listeners
+function setupEventListeners() {
+    // Refresh button
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log('[REFRESH] Manuel yenileme başlatıldı');
+            
+            // Button animation
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yenileniyor...';
+            this.disabled = true;
+            
+            loadDataFromGitHub().finally(() => {
+                setTimeout(() => {
+                    this.innerHTML = originalHTML;
+                    this.disabled = false;
+                }, 1000);
+            });
+        });
+    }
+    
+    // Retry button
+    const retryBtn = document.getElementById('retryBtn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            console.log('[RETRY] Tekrar deneme başlatıldı');
+            this.style.display = 'none';
+            loadDataFromGitHub();
+        });
+    }
+    
+    // Network events
+    window.addEventListener('online', function() {
+        console.log('[NETWORK] İnternet bağlantısı sağlandı');
+        showNotification('İnternet bağlantısı sağlandı, veriler yenileniyor', 'success');
+        loadDataFromGitHub();
+    });
+    
+    window.addEventListener('offline', function() {
+        console.log('[NETWORK] İnternet bağlantısı kesildi');
+        showNotification('İnternet bağlantısı kesildi, cache verileri gösteriliyor', 'warning');
+    });
+    
+    // Page visibility
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && !isInitialLoad) {
+            console.log('[VISIBILITY] Sayfa tekrar görünür oldu, veriler yenileniyor...');
+            loadDataFromGitHub();
+        }
+    });
 }
 
-// Veri yükleme fonksiyonu
-async function loadData() {
+// Load data from GitHub Pages
+async function loadDataFromGitHub() {
     try {
-        console.log('[API] GitHub Pages\'ten veri alınıyor:', API_URL);
+        console.log('[GITHUB] Veri alınıyor:', API_URL);
         
-        // Yükleniyor göster
-        if (loading) loading.style.display = 'block';
-        if (table) table.style.display = 'none';
-        if (errorMessage) errorMessage.style.display = 'none';
+        showLoading(true);
         
-        // GitHub Pages'ten JSON verisini çek
         const response = await fetch(API_URL, {
             headers: {
                 'Accept': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Cache-Control': 'no-cache'
             },
             cache: 'no-cache'
         });
@@ -39,223 +102,367 @@ async function loadData() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const result = await response.json();
-        console.log('[API] Veri alındı:', result);
+        const data = await response.json();
+        console.log('[GITHUB SUCCESS] Veri alındı:', data);
         
-        // Veriyi işle
-        processData(result);
+        processData(data);
         
     } catch (error) {
-        console.error('[API ERROR] Veri yüklenirken hata oluştu:', error);
-        handleError(error);
+        console.error('[GITHUB ERROR] Veri yüklenemedi:', error);
+        
+        const cacheLoaded = loadFromCache();
+        
+        if (!cacheLoaded) {
+            showError(`Veri yüklenemedi: ${error.message}<br>
+                      <small>GitHub Actions'in çalıştığından emin olun.</small>`);
+        }
+    } finally {
+        showLoading(false);
     }
 }
 
-// Veriyi işleme fonksiyonu
-function processData(result) {
-    let data = [];
-    let updateTime = new Date().toLocaleTimeString('tr-TR');
+// Process data
+function processData(data) {
+    let processedData = [];
+    let timestamp = new Date().toISOString();
+    let source = 'github';
+    let success = true;
     
-    // Farklı veri formatlarını destekle
-    if (result.success !== undefined && result.emirler) {
-        // Format: { success: true, lastFetch: "...", emirler: [...] }
-        data = result.emirler || [];
-        updateTime = result.lastFetch ? 
-            new Date(result.lastFetch).toLocaleTimeString('tr-TR') : 
-            updateTime;
-        console.log(`[API] Format 1 - ${data.length} emir bulundu`);
+    // Check data format
+    if (data.success !== undefined && data.emirler) {
+        // Format: {success, lastFetch, source, emirler}
+        processedData = data.emirler || [];
+        timestamp = data.lastFetch || timestamp;
+        source = data.source || source;
+        success = data.success;
+        console.log(`[FORMAT 1] ${processedData.length} emir, Success: ${success}`);
         
-    } else if (Array.isArray(result)) {
-        // Format: Direkt array [ {...}, {...} ]
-        data = result;
-        console.log(`[API] Format 2 - ${data.length} emir bulundu`);
+    } else if (Array.isArray(data.emirler)) {
+        // Format: {emirler: [...]}
+        processedData = data.emirler;
+        console.log(`[FORMAT 2] ${processedData.length} emir`);
+        
+    } else if (Array.isArray(data)) {
+        // Format: Direct array
+        processedData = data;
+        console.log(`[FORMAT 3] ${processedData.length} emir`);
         
     } else {
-        console.warn('[API] Geçerli veri formatı değil:', result);
-        data = [];
+        console.warn('[FORMAT WARNING] Bilinmeyen format:', data);
+        showError('Veri formatı tanınamadı');
+        return;
     }
     
-    // Tabloyu doldur
-    populateTable(data);
+    // Cache data
+    cacheData(processedData);
     
-    // Son güncelleme zamanını göster
-    if (lastUpdate) {
-        lastUpdate.textContent = `Son güncelleme: ${updateTime}`;
-    }
+    // Update UI
+    emirListesi = processedData;
+    updateDisplay();
+    updateStats();
+    updateLastUpdate(timestamp, source, success);
+    updateSystemStatus();
     
-    // Başarılı
-    if (loading) loading.style.display = 'none';
-    if (table) table.style.display = 'table';
+    console.log(`[SUCCESS] ${processedData.length} emir işlendi`);
     
-    console.log(`[SUCCESS] ${data.length} emir yüklendi`);
-    
-    // Tarayıcı başlığını güncelle
-    updateTabTitle(data.length);
-    
-    // Veriyi cache'le
-    cacheData(data);
-}
-
-// Hata yönetimi
-function handleError(error) {
-    if (loading) loading.style.display = 'none';
-    if (errorMessage) errorMessage.style.display = 'block';
-    if (table) table.style.display = 'none';
-    
-    // Hata mesajını güncelle
-    const errorText = errorMessage ? errorMessage.querySelector('p') : null;
-    if (errorText) {
-        errorText.textContent = `GitHub Pages'ten veri yüklenirken hata: ${error.message}. Lütfen daha sonra tekrar deneyin.`;
-    }
-    
-    // Butonu göster
-    if (retryBtn) {
-        retryBtn.style.display = 'block';
-    }
-    
-    // Cache'den veri yükle
-    loadFromCache();
-}
-
-// Veriyi cache'leme
-function cacheData(data) {
-    try {
-        localStorage.setItem('emirler_cache', JSON.stringify(data));
-        localStorage.setItem('emirler_cache_time', Date.now().toString());
-        console.log('[CACHE] Veri cache\'lendi');
-    } catch (e) {
-        console.warn('[CACHE] LocalStorage\'a yazılamadı:', e);
+    if (processedData.length > 0) {
+        showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
     }
 }
 
-// Cache'den veri yükle
-function loadFromCache() {
-    try {
-        const cachedData = localStorage.getItem('emirler_cache');
-        const cacheTime = localStorage.getItem('emirler_cache_time');
-        
-        if (cachedData && cacheTime) {
-            const data = JSON.parse(cachedData);
-            const now = Date.now();
-            const cacheAge = now - parseInt(cacheTime);
-            
-            // Eğer cache 30 dakikadan eski değilse
-            if (cacheAge < 30 * 60 * 1000 && data.length > 0) {
-                console.log('[CACHE] Cache\'den veri yükleniyor...');
-                
-                populateTable(data);
-                
-                const cacheDate = new Date(parseInt(cacheTime));
-                if (lastUpdate) {
-                    lastUpdate.textContent = `Son güncelleme: ${cacheDate.toLocaleTimeString('tr-TR')} (Cache)`;
-                }
-                
-                if (loading) loading.style.display = 'none';
-                if (errorMessage) errorMessage.style.display = 'none';
-                if (table) table.style.display = 'table';
-                
-                showNotification(`${data.length} emir cache'den yüklendi`, 'info');
-                return true;
-            }
-        }
-    } catch (e) {
-        console.error('[CACHE ERROR] Cache yüklenemedi:', e);
-    }
-    return false;
-}
-
-// Tabloyu doldurma fonksiyonu
-function populateTable(data) {
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
+// Update display
+function updateDisplay() {
+    const container = document.getElementById('emirListesi');
+    if (!container) return;
     
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="17" style="text-align: center; color: #666; padding: 40px;">
-                    <i class="fas fa-database fa-2x mb-3"></i><br>
-                    Gösterilecek emir bulunamadı.
-                </td>
-            </tr>
+    if (emirListesi.length === 0) {
+        container.innerHTML = `
+            <div class="no-data">
+                <i class="fas fa-database fa-3x"></i>
+                <h3>Henüz emir bulunmamaktadır</h3>
+                <p>GitHub Actions'in veri çekmesini bekleyin veya manuel yenileyin.</p>
+            </div>
         `;
         return;
     }
     
-    data.forEach((item, index) => {
-        const row = document.createElement('tr');
+    container.innerHTML = emirListesi.map((emir, index) => {
+        // Extract values
+        const sembol = emir.Sembol || emir.symbol || 'N/A';
+        const tip = emir.Tip || emir.type || 'N/A';
+        const durum = emir.Status || emir.Durum || 'N/A';
+        const lot = emir.Lot || emir.volume || '0';
+        const giris = emir.GirisFiyati || emir.entry_price || '0';
+        const kapanis = emir.KapanisFiyati || emir.current_price || '0';
+        const karZarar = emir.KarZarar || emir.profit || 0;
+        const karZararYuzde = emir.KarZararYuzde || emir.profit_percentage || 0;
+        const tarih = emir.FormatliEmirZamani || emir.EmirZamani || emir['Tarih/Saat'] || 'N/A';
+        const comment = emir.Comment || '';
         
-        // Duruma göre renk sınıfı
-        let durumClass = '';
-        let durumText = item.Durum || item.Status || item.durum || '-';
+        // Classes
+        const tipClass = tip.toLowerCase().includes('sat') ? 'sell' : 
+                        tip.toLowerCase().includes('al') ? 'buy' : 'neutral';
+        const durumClass = durum.toLowerCase().includes('açık') ? 'open' : 'closed';
+        const karZararClass = parseFloat(karZarar) >= 0 ? 'profit' : 'loss';
         
-        if (durumText.includes('AL') || durumText.includes('BUY') || durumText === 'Açık' || durumText === 'Open') {
-            durumClass = 'positive';
-        } else if (durumText.includes('SAT') || durumText.includes('SELL') || durumText === 'Kapalı' || durumText === 'Closed') {
-            durumClass = 'negative';
-        } else {
-            durumClass = 'neutral';
-        }
-        
-        // RSI değerine göre renk
-        let rsiClass = '';
-        const rsiValue = parseFloat(item.RSI || item.rsi);
-        if (!isNaN(rsiValue)) {
-            if (rsiValue > 70) rsiClass = 'negative';
-            else if (rsiValue < 30) rsiClass = 'positive';
-        }
-        
-        // Tarih formatını düzenle
-        let tarihSaat = item['Tarih/Saat'] || item.Tarih || item.Saat || item.EmirZamani || item.created_at || '';
-        
-        // Kar/zarar değerini formatla
-        let karZarar = item.KarZarar || item.profit || item.PLRatio || 0;
-        let karZararYuzde = item.KarZararYuzde || item.profit_percentage || 0;
-        let karZararClass = karZarar >= 0 ? 'positive' : 'negative';
-        
-        row.innerHTML = `
-            <td>${item.Id || item.ID || item.id || index + 1}</td>
-            <td>${formatDateTime(tarihSaat)}</td>
-            <td><strong>${item.Sembol || item.symbol || item.Coin || '-'}</strong></td>
-            <td>${item.Tip || item.type || item.SignalType || '-'}</td>
-            <td>${formatNumber(item.Lot || item.volume || item.Amount || '-')}</td>
-            <td>${formatNumber(item.GirisFiyati || item.entry_price || item.SignalPrice || '-', 4)}</td>
-            <td>${formatNumber(item.StopLoss || item.stop_loss || '-', 4)}</td>
-            <td>${formatNumber(item.TakeProfit || item.take_profit || '-', 4)}</td>
-            <td>${formatNumber(item.KapanisFiyati || item.current_price || item.CurrentPrice || '-', 4)}</td>
-            <td class="${rsiClass}">${!isNaN(rsiValue) ? rsiValue.toFixed(2) : (item.RSI || '-')}</td>
-            <td>${item.MACD || item.macd || '-'}</td>
-            <td>${item.EMA || item.ema || '-'}</td>
-            <td>${item.STOACH || item.stoch || '-'}</td>
-            <td class="${durumClass}"><strong>${durumText}</strong></td>
-            <td>${item.ListType || '-'}</td>
-            <td class="${karZararClass}">
-                <strong>${formatNumber(karZarar, 4)}</strong><br>
-                <small>${!isNaN(parseFloat(karZararYuzde)) ? parseFloat(karZararYuzde).toFixed(2) + '%' : ''}</small>
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-info" title="Detay Görüntüle" onclick="viewDetails(${index})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-warning" title="Düzenle" onclick="editOrder(${index})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" title="Sil" onclick="deleteOrder(${index})">
-                        <i class="fas fa-trash"></i>
+        return `
+        <div class="emir-card fade-in">
+            <div class="card-header">
+                <div class="symbol">${sembol}</div>
+                <div class="badges">
+                    <span class="type-badge ${tipClass}">${tip}</span>
+                    <span class="status-badge ${durumClass}">${durum}</span>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Giriş:</span>
+                        <span class="value">${formatNumber(giris, 4)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Kapanış:</span>
+                        <span class="value">${formatNumber(kapanis, 4)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Lot:</span>
+                        <span class="value">${formatNumber(lot)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Tarih:</span>
+                        <span class="value">${formatDateTime(tarih)}</span>
+                    </div>
+                </div>
+                
+                ${comment ? `
+                <div class="comment">
+                    <i class="fas fa-comment"></i>
+                    ${comment}
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card-footer">
+                <div class="pnl ${karZararClass}">
+                    <span class="pnl-label">Kar/Zarar:</span>
+                    <span class="pnl-value">
+                        ${formatNumber(karZarar, 2)} (${formatNumber(karZararYuzde, 2)}%)
+                    </span>
+                </div>
+                <div class="actions">
+                    <button class="btn-view" onclick="viewDetails(${index})">
+                        <i class="fas fa-eye"></i> Detay
                     </button>
                 </div>
-            </td>
+            </div>
+        </div>
         `;
-        
-        tableBody.appendChild(row);
-    });
-    
-    console.log(`[TABLE] ${data.length} emir tabloya eklendi`);
+    }).join('');
 }
 
-// Yardımcı fonksiyonlar
+// Update statistics
+function updateStats() {
+    const stats = calculateStats();
+    
+    const elements = {
+        'toplamEmir': stats.total,
+        'acikEmirler': stats.open,
+        'kapaliEmirler': stats.closed,
+        'toplamKarZarar': `${formatNumber(stats.totalProfit, 2)}`
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+            
+            if (id === 'toplamKarZarar') {
+                element.className = stats.totalProfit >= 0 ? 'positive' : 'negative';
+            }
+        }
+    });
+    
+    // Update page title
+    document.title = stats.total > 0 
+        ? `(${stats.total}) TrueSignal - Emir Takip` 
+        : 'TrueSignal - Emir Takip';
+}
+
+// Calculate statistics
+function calculateStats() {
+    const total = emirListesi.length;
+    
+    const open = emirListesi.filter(e => {
+        const durum = (e.Status || e.Durum || '').toLowerCase();
+        return durum.includes('açık') || durum.includes('open');
+    }).length;
+    
+    const closed = total - open;
+    
+    const totalProfit = emirListesi.reduce((sum, emir) => {
+        return sum + (parseFloat(emir.KarZarar) || 0);
+    }, 0);
+    
+    return { total, open, closed, totalProfit };
+}
+
+// Update last update time
+function updateLastUpdate(timestamp, source, success) {
+    const element = document.getElementById('lastUpdate');
+    if (!element) return;
+    
+    try {
+        const date = new Date(timestamp);
+        const timeStr = date.toLocaleTimeString('tr-TR');
+        const dateStr = date.toLocaleDateString('tr-TR');
+        
+        let sourceText = source;
+        if (source.includes('192.168.1.3')) sourceText = 'Local API';
+        if (source === 'fallback') sourceText = 'Fallback Veri';
+        
+        element.innerHTML = `
+            <i class="fas ${success ? 'fa-check-circle success' : 'fa-exclamation-triangle warning'}"></i>
+            <span>Son güncelleme: ${timeStr} (${dateStr})</span>
+            <small>Kaynak: ${sourceText}</small>
+        `;
+    } catch (error) {
+        element.innerHTML = `
+            <i class="fas fa-clock"></i>
+            <span>Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}</span>
+        `;
+    }
+}
+
+// Update system status
+function updateSystemStatus() {
+    const element = document.getElementById('systemStatus');
+    if (!element) return;
+    
+    const now = new Date();
+    const hour = now.getHours();
+    
+    let status = 'normal';
+    let message = 'Sistem normal çalışıyor';
+    let icon = 'fa-check-circle';
+    
+    if (emirListesi.length === 0) {
+        status = 'warning';
+        message = 'Emir verisi bulunamadı';
+        icon = 'fa-exclamation-triangle';
+    } else if (emirListesi.some(e => e.Sembol === 'API_UNAVAILABLE')) {
+        status = 'error';
+        message = 'Local API geçici olarak kapalı';
+        icon = 'fa-times-circle';
+    } else if (hour < 9 || hour > 18) {
+        status = 'info';
+        message = 'Mesai saatleri dışında';
+        icon = 'fa-moon';
+    }
+    
+    element.innerHTML = `
+        <i class="fas ${icon} ${status}"></i>
+        <span>${message}</span>
+    `;
+    element.className = `system-status ${status}`;
+}
+
+// Cache functions
+function cacheData(data) {
+    try {
+        const cache = {
+            data: data,
+            timestamp: Date.now(),
+            count: data.length
+        };
+        localStorage.setItem('truesignal_cache', JSON.stringify(cache));
+    } catch (error) {
+        console.warn('[CACHE] Kaydedilemedi:', error);
+    }
+}
+
+function loadFromCache() {
+    try {
+        const cached = localStorage.getItem('truesignal_cache');
+        if (!cached) return false;
+        
+        const cache = JSON.parse(cached);
+        const cacheAge = Date.now() - cache.timestamp;
+        
+        if (cacheAge < CACHE_EXPIRY && cache.data && cache.data.length > 0) {
+            console.log(`[CACHE] ${cache.data.length} emir cache'den yüklendi`);
+            
+            emirListesi = cache.data;
+            updateDisplay();
+            updateStats();
+            
+            const element = document.getElementById('lastUpdate');
+            if (element) {
+                const time = new Date(cache.timestamp);
+                element.innerHTML = `
+                    <i class="fas fa-database"></i>
+                    <span>Cache'den: ${time.toLocaleTimeString('tr-TR')}</span>
+                    <small>(${Math.round(cacheAge / 1000)} saniye önce)</small>
+                `;
+            }
+            
+            return true;
+        }
+    } catch (error) {
+        console.error('[CACHE ERROR]:', error);
+    }
+    return false;
+}
+
+// UI Functions
+function showLoading(show) {
+    const loading = document.getElementById('loading');
+    const content = document.getElementById('content');
+    
+    if (loading) loading.style.display = show ? 'flex' : 'none';
+    if (content) content.style.display = show ? 'none' : 'block';
+}
+
+function showError(message) {
+    const error = document.getElementById('errorMessage');
+    const errorText = error ? error.querySelector('p') : null;
+    const retryBtn = document.getElementById('retryBtn');
+    
+    if (error) {
+        error.style.display = 'block';
+        if (errorText) errorText.innerHTML = message;
+    }
+    if (retryBtn) retryBtn.style.display = 'block';
+}
+
+function showNotification(message, type = 'info') {
+    const existing = document.querySelector('.notification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                          type === 'error' ? 'fa-exclamation-circle' : 
+                          'fa-info-circle'}"></i>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) notification.remove();
+    }, 5000);
+}
+
+// Utility functions
 function formatNumber(value, decimals = 2) {
-    if (value === '-' || value === '') return '-';
+    if (value === null || value === undefined || value === '' || value === '-') return '-';
     const num = parseFloat(value);
     return isNaN(num) ? value : num.toFixed(decimals);
 }
@@ -266,162 +473,51 @@ function formatDateTime(datetimeStr) {
         const date = new Date(datetimeStr);
         if (!isNaN(date.getTime())) {
             return date.toLocaleString('tr-TR', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         }
-        return datetimeStr.replace('T', ' ').substring(0, 19);
+        return datetimeStr;
     } catch (error) {
         return datetimeStr;
     }
 }
 
-function updateTabTitle(count) {
-    document.title = count > 0 ? `(${count}) TrueSignal - Emir Takip` : 'TrueSignal - Emir Takip';
-}
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} notification`;
-    notification.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 9999;
-        min-width: 300px; animation: slideIn 0.3s ease;
-    `;
-    notification.innerHTML = `
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-        ${message}
-    `;
-    
-    document.body.appendChild(notification);
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-// Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('[INIT] Sayfa yüklendi');
-    console.log('[CONFIG] API URL:', API_URL);
-    
-    initDOM();
-    
-    // Cache'den veri yükle
-    const cacheLoaded = loadFromCache();
-    
-    // API'den güncel veriyi çek
-    setTimeout(() => loadData(), cacheLoaded ? 1000 : 0);
-    
-    // Her 30 saniyede bir otomatik yenile
-    setInterval(loadData, 30000);
-    
-    // Yenile butonuna tıklanınca
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            console.log('[REFRESH] Manuel yenileme başlatıldı');
-            
-            // Butona animasyon ekle
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yenileniyor...';
-            this.disabled = true;
-            
-            loadData();
-            
-            setTimeout(() => {
-                this.innerHTML = originalHTML;
-                this.disabled = false;
-            }, 2000);
-        });
-    }
-    
-    // Tekrar dene butonuna tıklanınca
-    if (retryBtn) {
-        retryBtn.addEventListener('click', function() {
-            console.log('[RETRY] Tekrar deneme başlatıldı');
-            loadData();
-            
-            // Butonu gizle
-            this.style.display = 'none';
-        });
-    }
-});
-
-// Global fonksiyonlar (index.html'den erişilebilir)
+// Global functions
 window.viewDetails = function(index) {
-    alert(`Emir ${index + 1} detayları gösterilecek`);
-};
-
-window.editOrder = function(index) {
-    alert(`Emir ${index + 1} düzenlenecek`);
-};
-
-window.deleteOrder = function(index) {
-    if (confirm(`Emir ${index + 1} silinsin mi?`)) {
-        alert(`Emir ${index + 1} silindi`);
+    if (index >= 0 && index < emirListesi.length) {
+        const emir = emirListesi[index];
+        const details = `
+Emir Detayları:
+──────────────
+ID: ${emir.Id || emir.ID || index + 1}
+Sembol: ${emir.Sembol || 'N/A'}
+Tip: ${emir.Tip || 'N/A'}
+Durum: ${emir.Status || emir.Durum || 'N/A'}
+Lot: ${emir.Lot || '0'}
+Giriş Fiyatı: ${emir.GirisFiyati || '0'}
+Kapanış Fiyatı: ${emir.KapanisFiyati || '0'}
+Stop Loss: ${emir.StopLoss || 'Yok'}
+Take Profit: ${emir.TakeProfit || 'Yok'}
+Kar/Zarar: ${emir.KarZarar || '0'} (${emir.KarZararYuzde || '0'}%)
+Tarih: ${formatDateTime(emir.FormatliEmirZamani || emir.EmirZamani || '')}
+Not: ${emir.Comment || 'Yok'}
+──────────────
+GitHub Actions ile otomatik çekilmiştir.
+        `;
+        alert(details);
     }
 };
 
-// Network events
-window.addEventListener('online', function() {
-    console.log('[NETWORK] İnternet bağlantısı sağlandı');
-    showNotification('İnternet bağlantısı sağlandı, veriler yenileniyor', 'success');
-    loadData();
-});
-
-window.addEventListener('offline', function() {
-    console.log('[NETWORK] İnternet bağlantısı kesildi');
-    showNotification('İnternet bağlantısı kesildi, cache verileri gösteriliyor', 'warning');
-});
-
-// Sayfa görünürlüğü değiştiğinde
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        console.log('[VISIBILITY] Sayfa tekrar görünür oldu, veriler yenileniyor...');
-        loadData();
-    }
-});
-
-// Sayfa yüklenme animasyonu
+// Initialize on load
 window.addEventListener('load', function() {
-    if (document.body) {
-        document.body.classList.add('loaded');
-    }
+    document.body.classList.add('loaded');
     
-    // Loading spinner'ı kaldır
     setTimeout(() => {
-        const spinner = document.querySelector('.spinner-border');
-        if (spinner) {
-            spinner.style.opacity = '0';
-            setTimeout(() => {
-                if (spinner.parentElement) {
-                    spinner.parentElement.remove();
-                }
-            }, 300);
-        }
+        const spinner = document.querySelector('.page-spinner');
+        if (spinner) spinner.remove();
     }, 500);
 });
-
-// Responsive tablo kontrolü
-function checkTableResponsive() {
-    const tableContainer = document.querySelector('.table-container');
-    if (!tableContainer) return;
-    
-    if (window.innerWidth < 768) {
-        tableContainer.style.overflowX = 'auto';
-        tableContainer.style.position = 'relative';
-    } else {
-        tableContainer.style.overflowX = 'visible';
-    }
-}
-
-window.addEventListener('resize', checkTableResponsive);
-
-// Hata sayfası yönlendirmesi
-if (window.location.pathname.includes('404')) {
-    console.log('[404] 404 sayfasındayız, yönlendirme yapılıyor...');
-    
-    setTimeout(() => {
-        window.location.href = '/TrueSignals/';
-    }, 3000);
-}
