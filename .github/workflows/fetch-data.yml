@@ -2,7 +2,7 @@ name: Fetch Data from Local API
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/5 * * * *'  # Her 5 dakikada bir
   push:
     branches: [ main ]
   workflow_dispatch:
@@ -19,34 +19,132 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
     
     - name: Fetch API Data
       id: fetch
       run: |
         echo "🎯 API'den veri alınıyor..."
-        API_RESPONSE=$(curl -s --max-time 30 "http://192.168.1.3:3000/api/emirler")
         
-        if [ ! -z "$API_RESPONSE" ]; then
+        # API'den veri al
+        API_RESPONSE=$(curl -s \
+          --max-time 30 \
+          --retry 2 \
+          --retry-delay 3 \
+          "http://192.168.1.3:3000/api/emirler" || echo "ERROR")
+        
+        if [ "$API_RESPONSE" != "ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
           mkdir -p public
+          
+          # Ham API yanıtını kaydet
           echo "$API_RESPONSE" > public/data.json
+          
+          # DOĞRU FORMAT: API'den gelen emirler dizisini çıkar
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > public/api-data.json
-          echo "success=true" >> $GITHUB_OUTPUT
+          
+          # Python ile JSON işleme - EMRİLER DİZİSİNİ ÇIKAR
+          python3 << EOF
+import json
+import sys
+
+try:
+    # API yanıtını oku
+    api_data = json.loads('''$API_RESPONSE''')
+    
+    # emirler dizisini bul
+    if isinstance(api_data, dict):
+        emirler_list = api_data.get('emirler', [])
+    elif isinstance(api_data, list):
+        emirler_list = api_data
+    else:
+        emirler_list = []
+    
+    # Doğru formatta kaydet
+    result = {
+        "success": True,
+        "lastFetch": "$TIMESTAMP",
+        "source": "http://192.168.1.3:3000",
+        "emirler": emirler_list
+    }
+    
+    with open('public/api-data.json', 'w') as f:
+        json.dump(result, f, indent=2)
+    
+    print(f"✅ {len(emirler_list)} emir kaydedildi")
+    sys.exit(0)
+    
+except json.JSONDecodeError as e:
+    print(f"❌ JSON decode hatası: {e}")
+    # Fallback
+    with open('public/api-data.json', 'w') as f:
+        json.dump({"success": False, "error": "Invalid JSON"}, f)
+    sys.exit(1)
+except Exception as e:
+    print(f"❌ Genel hata: {e}")
+    with open('public/api-data.json', 'w') as f:
+        json.dump({"success": False, "error": str(e)}, f)
+    sys.exit(1)
+EOF
+          
+          # Başarı durumunu kaydet
+          if [ $? -eq 0 ]; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "count=$(python3 -c \"import json; d=json.load(open('public/api-data.json')); print(len(d.get('emirler', [])))\")" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+          
         else
+          echo "❌ API hatası"
           echo "success=false" >> $GITHUB_OUTPUT
+          echo "count=0" >> $GITHUB_OUTPUT
         fi
+    
+    - name: Show result
+      run: |
+        echo "📊 İşlem sonucu:"
+        ls -la public/ 2>/dev/null || echo "public/ klasörü yok"
+        echo ""
+        echo "📄 api-data.json önizleme:"
+        head -c 300 public/api-data.json 2>/dev/null || echo "Dosya okunamadı"
+        echo "..."
     
     - name: Commit and Push
       if: steps.fetch.outputs.success == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        git config user.email "action@github.com"
-        git config user.name "GitHub Action"
+        echo "💾 Git işlemleri..."
+        
+        # Git ayarları
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Remote'dan güncel veriyi al
+        echo "🔄 Remote senkronizasyonu..."
         git fetch origin
         git reset --hard origin/main
+        
+        # Dosyaları ekle
         git add public/
-        git commit -m "📊 Update $(date +'%H:%M:%S')" --allow-empty
+        
+        # Commit yap
+        echo "💾 Commit yapılıyor..."
+        git commit -m "📊 Veri güncellendi (${{ steps.fetch.outputs.count }} emir) - $(date +'%H:%M:%S')" --allow-empty
+        
+        # Force push
+        echo "🚀 Push yapılıyor..."
         git push origin main --force
-        echo "✅ BAŞARILI"
+        
+        echo "✅ Tüm işlemler tamamlandı!"
+    
+    - name: Summary
+      run: |
+        echo "========================================"
+        echo "🎉 GitHub Actions İşlemi Tamamlandı"
+        echo "========================================"
+        echo "✅ Başarılı: ${{ steps.fetch.outputs.success }}"
+        echo "📊 Emir Sayısı: ${{ steps.fetch.outputs.count }}"
+        echo "🌐 Erişilebilir: https://cagatay-a.github.io/TrueSignals/api-data.json"
+        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignals/"
+        echo "========================================"
