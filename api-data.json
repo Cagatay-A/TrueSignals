@@ -1,7 +1,7 @@
 {
   "success": false,
   "lastFetch": null,
-  "source": "local-template",
-  "message": "GitHub Actions tarafından henüz veri çekilmedi. İlk çalıştırmayı bekliyor...",
+  "source": "initial-template",
+  "message": "GitHub Actions henüz çalışmadı. İlk veri çekmeyi bekliyor...",
   "emirler": []
 }

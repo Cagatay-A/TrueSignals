@@ -169,7 +169,7 @@ jobs:
         ## API Endpoint
         
         ```json
-        GET https://cagatay-a.github.io/TrueSignals/api-data.json
+        GET https://cagatay-a.github.io/TrueSignal/api-data.json
         ```
         
         ## Örnek Yanıt
@@ -233,8 +233,8 @@ jobs:
         echo "✅ Başarılı: ${{ steps.fetch-data.outputs.success }}"
         echo "📊 Emir Sayısı: ${{ steps.fetch-data.outputs.count }}"
         echo "💾 Commit: ${{ steps.commit-push.outputs.commit_message }}"
-        echo "🌐 Erişilebilir: https://cagatay-a.github.io/TrueSignals/api-data.json"
-        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignals/"
+        echo "🌐 Erişilebilir: https://cagatay-a.github.io/TrueSignal/api-data.json"
+        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignal/"
         echo "====================================="
         
         # Son 5 commit'i göster
