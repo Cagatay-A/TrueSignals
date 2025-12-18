@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   fetch-data:
@@ -22,28 +20,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
     
-    - name: Setup System Python on Raspberry Pi  # DEĞİŞTİRİLDİ!
+    - name: Create public directory
       run: |
-        echo "🔧 Raspberry Pi üzerinde sistem Python'u kullanılıyor"
-        echo "Python versiyonu: $(python3 --version 2>/dev/null || echo 'Python bulunamadı')"
-        echo "Python3 yolu: $(which python3 2>/dev/null || echo 'Bulunamadı')"
-        
-        # Eğer python3 yoksa kur
-        if ! command -v python3 &> /dev/null; then
-          echo "📦 Python3 kuruluyor..."
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-pip
-        fi
-        
-        # Pip'i kontrol et
-        python3 -m ensurepip --upgrade 2>/dev/null || echo "Pip yükseltilemedi, devam ediliyor"
-        
-        echo "✅ Sistem Python hazır"
-    
-    - name: Create public directory if not exists
-      run: |
+        echo "📁 Public klasörü oluşturuluyor..."
         mkdir -p public
     
     - name: Fetch API Data with retry logic
@@ -58,39 +38,18 @@ jobs:
           
           # Curl ile API'den veri çek
           API_RESPONSE=$(curl -s \
-            --max-time 30 \
-            --retry 2 \
-            --retry-delay 5 \
-            --retry-max-time 60 \
-            -H "User-Agent: GitHub-Actions-Fetcher/1.0" \
+            --max-time 10 \
+            --retry 1 \
+            --retry-delay 2 \
             -H "Accept: application/json" \
-            -H "X-Requested-With: TrueSignal-Data-Fetch" \
             "http://192.168.1.3:3000/api/emirler" || echo "CURL_ERROR")
           
           # Eğer curl başarılıysa devam et
           if [ "$API_RESPONSE" != "CURL_ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
-            echo "✅ API'den veri başarıyla alındı (${#API_RESPONSE} karakter)"
+            echo "✅ API'den veri alındı (${#API_RESPONSE} karakter)"
             
-            # JSON geçerlilik kontrolü - RASPBERRY Pi UYUMLU!
-            if echo "$API_RESPONSE" | python3 -c "
-import json
-import sys
-
-try:
-    data = json.loads(sys.stdin.read())
-    if isinstance(data, dict) or isinstance(data, list):
-        print('VALID_JSON')
-        sys.exit(0)
-    else:
-        print('INVALID_JSON_TYPE')
-        sys.exit(1)
-except json.JSONDecodeError:
-    print('INVALID_JSON_SYNTAX')
-    sys.exit(1)
-except Exception as e:
-    print(f'UNKNOWN_ERROR: {e}')
-    sys.exit(1)
-" > /dev/null 2>&1; then
+            # BASİT JSON kontrolü - TEK SATIR
+            if echo "$API_RESPONSE" | python3 -c "import json,sys; json.loads(sys.stdin.read())" 2>/dev/null; then
               echo "✅ JSON formatı geçerli"
               
               # Veriyi kaydet
@@ -100,23 +59,8 @@ except Exception as e:
               TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
               echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > public/api-data.json
               
-              # İstatistikleri hesapla - RASPBERRY Pi UYUMLU!
-              COUNT=$(echo "$API_RESPONSE" | python3 -c "
-import json
-import sys
-
-try:
-    data = json.loads(sys.stdin.read())
-    if isinstance(data, dict):
-        count = len(data.get('emirler', [])) if 'emirler' in data else len(data)
-    elif isinstance(data, list):
-        count = len(data)
-    else:
-        count = 0
-    print(count)
-except:
-    print(0)
-")
+              # İstatistikleri hesapla - TEK SATIR
+              COUNT=$(echo "$API_RESPONSE" | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(len(d) if isinstance(d, list) else (len(d.get('emirler', [])) if isinstance(d, dict) and 'emirler' in d else 1))")
               echo "📊 $COUNT emir bulundu"
               
               echo "success=true" >> $GITHUB_OUTPUT
@@ -127,42 +71,18 @@ except:
             fi
           else
             echo "❌ API'ye bağlanılamadı (Deneme $i)"
-            sleep 5
-          fi
-          
-          if [ $i -eq 3 ]; then
-            echo "❌ Tüm denemeler başarısız, fallback veri kullanılacak"
+            sleep 2
           fi
         done
         
         # Eğer tüm denemeler başarısız olursa fallback veri oluştur
         if [ ! -f public/data.json ]; then
-          echo "⚠️  Fallback veri oluşturuluyor..."
+          echo "⚠️ Fallback veri oluşturuluyor..."
           
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          # Fallback veri (API down olduğunda)
-          FALLBACK_DATA='[
-            {
-              "Id": 999,
-              "Tarih/Saat": "'$(date +"%Y-%m-%d %H:%M:%S")'",
-              "Sembol": "API_UNAVAILABLE",
-              "Tip": "INFO",
-              "Lot": 0,
-              "GirisFiyati": 0,
-              "StopLoss": 0,
-              "TakeProfit": 0,
-              "KapanisFiyati": 0,
-              "RSI": 0,
-              "MACD": "API Kapalı",
-              "EMA": "API Kapalı",
-              "STOACH": "API Kapalı",
-              "Durum": "API Kapalı",
-              "ListType": "Sistem",
-              "KarZarar": 0,
-              "KarZararYuzde": 0
-            }
-          ]'
+          # Fallback veri
+          FALLBACK_DATA='[{"Id":999,"Sembol":"API_UNAVAILABLE","Tip":"INFO","Durum":"API Kapalı","EmirZamani":"'$(date +"%Y-%m-%d %H:%M:%S")'"}]'
           
           echo "$FALLBACK_DATA" > public/data.json
           echo '{ "success": false, "lastFetch": "'$TIMESTAMP'", "source": "fallback", "message": "API temporarily unavailable", "emirler": '"$FALLBACK_DATA"' }' > public/api-data.json
@@ -171,142 +91,46 @@ except:
           echo "count=1" >> $GITHUB_OUTPUT
         fi
     
-    - name: Validate JSON files
+    - name: Show files
       run: |
-        echo "🔍 JSON dosyaları kontrol ediliyor..."
-        
-        # api-data.json kontrolü - RASPBERRY Pi UYUMLU!
-        if [ -f public/api-data.json ]; then
-          echo "📁 api-data.json:"
-          python3 -c "
-import json
-import sys
-
-try:
-    with open('public/api-data.json', 'r') as f:
-        data = json.load(f)
-    print('✅ api-data.json geçerli')
-    print(f'📏 Boyut: {len(json.dumps(data))} bytes')
-except Exception as e:
-    print(f'❌ api-data.json geçersiz: {e}')
-" 2>/dev/null || echo "❌ api-data.json kontrolü başarısız"
-        fi
-        
-        # data.json kontrolü
-        if [ -f public/data.json ]; then
-          echo "📁 data.json:"
-          python3 -c "
-import json
-import sys
-
-try:
-    with open('public/data.json', 'r') as f:
-        data = json.load(f)
-    print('✅ data.json geçerli')
-    print(f'📏 Boyut: {len(json.dumps(data))} bytes')
-except Exception as e:
-    print(f'❌ data.json geçersiz: {e}')
-" 2>/dev/null || echo "❌ data.json kontrolü başarısız"
-        fi
-        
-        # Örnek veriyi göster
-        echo "📋 Örnek veri (ilk 500 karakter):"
-        head -c 500 public/api-data.json 2>/dev/null && echo "..." || echo "Dosya okunamadı"
-    
-    - name: Create README for public folder
-      run: |
-        cat > public/README.md << 'EOF'
-        # Public Data Files
-        
-        Bu klasör GitHub Actions tarafından otomatik olarak oluşturulur.
-        
-        ## Dosyalar
-        
-        - `data.json`: Ham API verisi
-        - `api-data.json`: Metadata ile zenginleştirilmiş API verisi
-        
-        ## Veri Akışı
-        
-        1. GitHub Actions her 5 dakikada bir çalışır
-        2. Local API'den (http://192.168.1.3:3000) veri çeker
-        3. JSON formatında bu klasöre kaydeder
-        4. GitHub Pages üzerinden servis edilir
-        
-        ## API Endpoint
-        
-        ```json
-        GET https://cagatay-a.github.io/TrueSignal/api-data.json
-        ```
-        
-        ## Örnek Yanıt
-        
-        ```json
-        {
-          "success": true,
-          "lastFetch": "2024-01-18T12:00:00Z",
-          "source": "http://192.168.1.3:3000",
-          "emirler": [...]
-        }
-        ```
-        
-        ## Manuel Tetikleme
-        
-        GitHub Actions sayfasından "Run workflow" butonuna tıklayarak manuel tetikleyebilirsiniz.
-        EOF
+        echo "📁 Oluşturulan dosyalar:"
+        ls -la public/
+        echo ""
+        echo "📄 api-data.json önizleme:"
+        head -c 300 public/api-data.json 2>/dev/null || echo "Dosya yok"
+        echo "..."
     
     - name: Commit and Push changes
-      id: commit-push
+      if: steps.fetch-data.outputs.success == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        echo "💾 Değişiklikler commit ediliyor..."
+        echo "💾 Değişiklikler kaydediliyor..."
         
         # Git ayarları
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
-        
-        # Değişiklikleri kontrol et
-        git status
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
         
         # Değişiklikleri ekle
         git add public/
         
-        # Commit mesajı oluştur
-        TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-        if [ "${{ steps.fetch-data.outputs.success }}" = "true" ]; then
-          COMMIT_MSG="📊 API Verileri Güncellendi (${{ steps.fetch-data.outputs.count }} emir) - $TIMESTAMP"
+        # Değişiklik varsa commit et
+        if git diff --cached --quiet; then
+          echo "🤷 Değişiklik yok, commit atlanıyor"
         else
-          COMMIT_MSG="⚠️  Fallback Veri Kullanıldı (API Kapalı) - $TIMESTAMP"
+          git commit -m "📊 API Verileri Güncellendi (${{ steps.fetch-data.outputs.count }} emir) - $(date +'%H:%M:%S')"
+          echo "🚀 Değişiklikler gönderiliyor..."
+          git push
+          echo "✅ Gönderim tamamlandı"
         fi
-        
-        # Commit yap
-        git commit -m "$COMMIT_MSG" || echo "⚠️  Commit yapılamadı (muhtemelen değişiklik yok)"
-        
-        # Push yap
-        echo "🚀 Değişiklikler push ediliyor..."
-        git push origin main
-        
-        echo "✅ İşlem tamamlandı"
-        
-        # Sonuçları output'a ekle
-        echo "commit_message=$COMMIT_MSG" >> $GITHUB_OUTPUT
     
     - name: Summary
       run: |
+        echo "====================================="
         echo "🎉 GitHub Actions İşlemi Tamamlandı"
         echo "====================================="
-        echo "📅 Zaman: $(date)"
         echo "✅ Başarılı: ${{ steps.fetch-data.outputs.success }}"
         echo "📊 Emir Sayısı: ${{ steps.fetch-data.outputs.count }}"
-        echo "💾 Commit: ${{ steps.commit-push.outputs.commit_message }}"
-        echo "🌐 Erişilebilir: https://cagatay-a.github.io/TrueSignal/api-data.json"
-        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignal/"
+        echo "🌐 JSON URL: https://cagatay-a.github.io/TrueSignals/api-data.json"
+        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignals/"
         echo "====================================="
-        
-        # Son 5 commit'i göster
-        echo "📝 Son 5 commit:"
-        git log --oneline -5
-        
-        # Dosya durumunu göster
-        echo "📁 Public klasörü içeriği:"
-        ls -la public/
