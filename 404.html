@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sayfa Bulunamadı - TrueSignal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .error-message {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #4a5568;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid #667eea;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .redirect-info {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .path-display {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .quick-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .quick-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <h1 class="error-message">Sayfa Bulunamadı</h1>
+        
+        <div class="redirect-info">
+            <p><i class="fas fa-info-circle"></i> Doğru sayfaya yönlendiriliyorsunuz...</p>
+            <div class="spinner"></div>
+            <div id="pathInfo">
+                <p>Mevcut URL:</p>
+                <div class="path-display" id="currentPath"></div>
+            </div>
+        </div>
+        
+        <div class="quick-links">
+            <a href="/TrueSignal/" class="quick-link">
+                <i class="fas fa-home"></i> Ana Sayfa
+            </a>
+            <a href="/TrueSignal/about" class="quick-link">
+                <i class="fas fa-info-circle"></i> Hakkında
+            </a>
+            <a href="/TrueSignal/contact" class="quick-link">
+                <i class="fas fa-envelope"></i> İletişim
+            </a>
+        </div>
+        
+        <p style="margin-top: 30px; color: #718096; font-size: 0.9rem;">
+            <i class="fas fa-lightbulb"></i> İpucu: Gelecekte temiz URL'leri kullanın:<br>
+            <code>https://cagatay-a.github.io/TrueSignal/contact</code>
+        </p>
+    </div>
+
+    <script>
+        // URL temizleme ve yönlendirme fonksiyonu
+        function handle404Redirect() {
+            const currentURL = window.location.href;
+            const currentPath = window.location.pathname;
+            
+            // Mevcut path'i göster
+            document.getElementById('currentPath').textContent = currentPath;
+            
+            console.log('404 Sayfası - Orijinal URL:', currentURL);
+            console.log('404 Sayfası - Orijinal Path:', currentPath);
+            
+            // GitHub Pages repository path'ini belirle
+            const repoName = '/TrueSignal/';
+            let cleanPath = '';
+            
+            // Repository path'ini çıkar
+            if (currentPath.startsWith(repoName)) {
+                cleanPath = currentPath.replace(repoName, '');
+            } else if (currentPath.startsWith('/')) {
+                cleanPath = currentPath.substring(1);
+            }
+            
+            console.log('Temizlenecek path:', cleanPath);
+            
+            // 1. Tüm index.html'leri temizle
+            cleanPath = cleanPath.replace(/index\.html/gi, '');
+            
+            // 2. Tekrarlanan slash'leri temizle
+            cleanPath = cleanPath.replace(/\/+/g, '/');
+            
+            // 3. Baştaki ve sondaki slash'leri temizle
+            cleanPath = cleanPath.replace(/^\/|\/$/g, '');
+            
+            // 4. .html uzantılarını temizle
+            cleanPath = cleanPath.replace(/\.html$/i, '');
+            
+            console.log('Temizlenmiş path:', cleanPath);
+            
+            // Sayfa eşleme tablosu
+            const pageMap = {
+                '': 'index.html',
+                'contact': 'contact.html',
+                'about': 'about.html',
+                '404': '404.html'
+            };
+            
+            // Hedef sayfayı belirle
+            let targetPage = 'index.html';
+            const lowerPath = cleanPath.toLowerCase();
+            
+            if (pageMap[lowerPath]) {
+                targetPage = pageMap[lowerPath];
+            } else if (cleanPath === '') {
+                targetPage = 'index.html';
+            }
+            
+            console.log('Hedef sayfa:', targetPage);
+            
+            // 3 saniye bekleyip yönlendir (kullanıcının mesajı görmesi için)
+            setTimeout(() => {
+                // Eğer zaten doğru sayfadaysak veya ana sayfaysak, redirect yapma
+                if (targetPage === 'index.html' && cleanPath === '') {
+                    // Zaten ana sayfada, hiçbir şey yapma
+                    return;
+                }
+                
+                // Yönlendirme URL'sini oluştur
+                const redirectURL = repoName + targetPage;
+                console.log('Yönlendiriliyor:', redirectURL);
+                
+                // Tarayıcı geçmişini temizle
+                window.history.replaceState({}, '', redirectURL);
+                
+                // Sayfayı yükle
+                window.location.href = redirectURL;
+            }, 3000);
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        document.addEventListener('DOMContentLoaded', handle404Redirect);
+        
+        // Eğer hala bu sayfadaysak 10 saniye sonra ana sayfaya yönlendir
+        setTimeout(() => {
+            if (window.location.pathname.includes('404')) {
+                window.location.href = '/TrueSignal/';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
