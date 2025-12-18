@@ -30,7 +30,7 @@ jobs:
             echo "$RESPONSE" > public/data.json
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             
-            # Python işlemini hata riskini önlemek için basit tutuyoruz
+            # Python işlemini hata riskini önlemek için tek satıra yakın tutuyoruz
             python3 -c "
 import json
 try:
@@ -39,8 +39,8 @@ try:
     result = {'success': True, 'lastFetch': '$TIMESTAMP', 'emirler': emirler}
     with open('public/api-data.json', 'w') as f: json.dump(result, f, indent=2)
     print(f'SUCCESS_{len(emirler)}')
-except Exception as e:
-    print(f'ERROR')
+except Exception:
+    print('ERROR')
             " > status.txt
             
             STATUS=$(cat status.txt)
