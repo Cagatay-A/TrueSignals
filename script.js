@@ -90,7 +90,10 @@ async function loadDataFromGitHub() {
         
         showLoading(true);
         
-        const response = await fetch(API_URL, {
+        // Cache busting için timestamp ekle
+        const cacheBustURL = API_URL + '?t=' + Date.now();
+        
+        const response = await fetch(cacheBustURL, {
             headers: {
                 'Accept': 'application/json',
                 'Cache-Control': 'no-cache'
@@ -121,154 +124,125 @@ async function loadDataFromGitHub() {
     }
 }
 
-// Process data
+// Process data with Turkish encoding fix
 function processData(data) {
     let processedData = [];
     let timestamp = new Date().toISOString();
     let source = 'github';
     let success = true;
     
+    console.log('[PROCESS] Processing data:', data);
+    
+    // Fix Turkish encoding first
+    const fixedData = fixTurkishEncoding(data);
+    
     // Check data format
-    if (data.success !== undefined && data.emirler) {
+    if (fixedData.success !== undefined && fixedData.emirler) {
         // Format: {success, lastFetch, source, emirler}
-        processedData = data.emirler || [];
-        timestamp = data.lastFetch || timestamp;
-        source = data.source || source;
-        success = data.success;
+        processedData = Array.isArray(fixedData.emirler) ? fixedData.emirler : [];
+        timestamp = fixedData.lastFetch || timestamp;
+        source = fixedData.source || source;
+        success = fixedData.success;
         console.log(`[FORMAT 1] ${processedData.length} emir, Success: ${success}`);
         
-    } else if (Array.isArray(data.emirler)) {
-        // Format: {emirler: [...]}
-        processedData = data.emirler;
+    } else if (fixedData.emirler && Array.isArray(fixedData.emirler.emirler)) {
+        // Format: {emirler: {emirler: [...]}}
+        processedData = fixedData.emirler.emirler || [];
         console.log(`[FORMAT 2] ${processedData.length} emir`);
         
-    } else if (Array.isArray(data)) {
-        // Format: Direct array
-        processedData = data;
+    } else if (Array.isArray(fixedData.emirler)) {
+        // Format: {emirler: [...]}
+        processedData = fixedData.emirler;
         console.log(`[FORMAT 3] ${processedData.length} emir`);
         
+    } else if (Array.isArray(fixedData)) {
+        // Format: Direct array
+        processedData = fixedData;
+        console.log(`[FORMAT 4] ${processedData.length} emir`);
+        
     } else {
-        console.warn('[FORMAT WARNING] Bilinmeyen format:', data);
+        console.warn('[FORMAT WARNING] Bilinmeyen format:', fixedData);
         showError('Veri formatı tanınamadı');
         return;
     }
+    
+    // Fix Turkish encoding in each emir
+    processedData = processedData.map(emir => fixTurkishEncodingInObject(emir));
     
     // Cache data
     cacheData(processedData);
     
     // Update UI
     emirListesi = processedData;
-    updateDisplay();
+    updateTable();
+    showTable();
     updateStats();
     updateLastUpdate(timestamp, source, success);
     updateSystemStatus();
-    
-    // TABLO GÜNCELLEMESİ
-    updateTable();
-    showTable();
     
     console.log(`[SUCCESS] ${processedData.length} emir işlendi, tablo güncellendi`);
     
     if (processedData.length > 0) {
         showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
+        
+        // Filtreleri uygula
+        setTimeout(applyFilters, 500);
     }
 }
 
-// Update display (card view)
-function updateDisplay() {
-    const container = document.getElementById('emirListesi');
-    if (!container) return;
+// Fix Turkish encoding in a string
+function fixTurkishEncoding(text) {
+    if (typeof text !== 'string') return text;
     
-    if (emirListesi.length === 0) {
-        container.innerHTML = `
-            <div class="no-data">
-                <i class="fas fa-database fa-3x"></i>
-                <h3>Henüz emir bulunmamaktadır</h3>
-                <p>GitHub Actions'in veri çekmesini bekleyin veya manuel yenileyin.</p>
-            </div>
-        `;
-        return;
+    const replacements = {
+        'Ä±': 'ı',
+        'ÄŸ': 'ğ',
+        'ÅŸ': 'ş',
+        'Ã§': 'ç',
+        'Ã¶': 'ö',
+        'Ã¼': 'ü',
+        'Ä°': 'İ',
+        'ÄŸ': 'Ğ',
+        'Åž': 'Ş',
+        'Ã‡': 'Ç',
+        'Ã–': 'Ö',
+        'Ãœ': 'Ü',
+        'KapalÄ±': 'Kapalı',
+        'UlaÅŸÄ±ldÄ±': 'Ulaşıldı'
+    };
+    
+    let fixedText = text;
+    for (const [wrong, correct] of Object.entries(replacements)) {
+        fixedText = fixedText.replace(new RegExp(wrong, 'g'), correct);
     }
     
-    container.innerHTML = emirListesi.map((emir, index) => {
-        // Extract values
-        const sembol = emir.Sembol || emir.symbol || 'N/A';
-        const tip = emir.Tip || emir.type || 'N/A';
-        const durum = emir.Status || emir.Durum || 'N/A';
-        const lot = emir.Lot || emir.volume || '0';
-        const giris = emir.GirisFiyati || emir.entry_price || '0';
-        const kapanis = emir.KapanisFiyati || emir.current_price || '0';
-        const karZarar = emir.KarZarar || emir.profit || 0;
-        const karZararYuzde = emir.KarZararYuzde || emir.profit_percentage || 0;
-        const tarih = emir.FormatliEmirZamani || emir.EmirZamani || emir['Tarih/Saat'] || 'N/A';
-        const comment = emir.Comment || '';
-        
-        // Classes
-        const tipClass = tip.toLowerCase().includes('sat') ? 'sell' : 
-                        tip.toLowerCase().includes('al') ? 'buy' : 'neutral';
-        const durumClass = durum.toLowerCase().includes('açık') ? 'open' : 'closed';
-        const karZararClass = parseFloat(karZarar) >= 0 ? 'profit' : 'loss';
-        
-        return `
-        <div class="emir-card fade-in">
-            <div class="card-header">
-                <div class="symbol">${sembol}</div>
-                <div class="badges">
-                    <span class="type-badge ${tipClass}">${tip}</span>
-                    <span class="status-badge ${durumClass}">${durum}</span>
-                </div>
-            </div>
-            
-            <div class="card-body">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="label">Giriş:</span>
-                        <span class="value">${formatNumber(giris, 4)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Kapanış:</span>
-                        <span class="value">${formatNumber(kapanis, 4)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Lot:</span>
-                        <span class="value">${formatNumber(lot)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Tarih:</span>
-                        <span class="value">${formatDateTime(tarih)}</span>
-                    </div>
-                </div>
-                
-                ${comment ? `
-                <div class="comment">
-                    <i class="fas fa-comment"></i>
-                    ${comment}
-                </div>
-                ` : ''}
-            </div>
-            
-            <div class="card-footer">
-                <div class="pnl ${karZararClass}">
-                    <span class="pnl-label">Kar/Zarar:</span>
-                    <span class="pnl-value">
-                        ${formatNumber(karZarar, 2)} (${formatNumber(karZararYuzde, 2)}%)
-                    </span>
-                </div>
-                <div class="actions">
-                    <button class="btn-view" onclick="viewDetails(${index})">
-                        <i class="fas fa-eye"></i> Detay
-                    </button>
-                </div>
-            </div>
-        </div>
-        `;
-    }).join('');
+    return fixedText;
+}
+
+// Fix Turkish encoding in an object recursively
+function fixTurkishEncodingInObject(obj) {
+    if (typeof obj === 'string') {
+        return fixTurkishEncoding(obj);
+    } else if (Array.isArray(obj)) {
+        return obj.map(item => fixTurkishEncodingInObject(item));
+    } else if (typeof obj === 'object' && obj !== null) {
+        const fixedObj = {};
+        for (const [key, value] of Object.entries(obj)) {
+            fixedObj[key] = fixTurkishEncodingInObject(value);
+        }
+        return fixedObj;
+    } else {
+        return obj;
+    }
 }
 
 // Update table (tablo görünümü)
 function updateTable() {
     const tbody = document.getElementById('tableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('[TABLE] tableBody not found');
+        return;
+    }
     
     if (emirListesi.length === 0) {
         tbody.innerHTML = `
@@ -503,10 +477,9 @@ function loadFromCache() {
             console.log(`[CACHE] ${cache.data.length} emir cache'den yüklendi`);
             
             emirListesi = cache.data;
-            updateDisplay();
-            updateStats();
             updateTable();
             showTable();
+            updateStats();
             
             const element = document.getElementById('lastUpdate');
             if (element) {
@@ -529,10 +502,10 @@ function loadFromCache() {
 // UI Functions
 function showLoading(show) {
     const loading = document.getElementById('loading');
-    const content = document.getElementById('content');
+    const errorMessage = document.getElementById('errorMessage');
     
     if (loading) loading.style.display = show ? 'flex' : 'none';
-    if (content) content.style.display = show ? 'none' : 'block';
+    if (errorMessage && !show) errorMessage.style.display = 'none';
 }
 
 function showError(message) {
@@ -551,8 +524,7 @@ function showError(message) {
     if (table) table.style.display = 'none';
     
     // Loading'i gizle
-    const loading = document.getElementById('loading');
-    if (loading) loading.style.display = 'none';
+    showLoading(false);
 }
 
 function showNotification(message, type = 'info') {
@@ -638,6 +610,52 @@ window.showEmirChart = function(index) {
         alert(`Grafik özelliği geliştirme aşamasında!\n\n${emir.Sembol || 'Emir'} için grafik gösterilecek.`);
     }
 };
+
+// Filtreleme fonksiyonu (index.html'deki ile uyumlu)
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    const typeFilter = document.getElementById('typeFilter')?.value || '';
+    const symbolFilter = document.getElementById('symbolFilter')?.value.toLowerCase() || '';
+    const dateFilter = document.getElementById('dateFilter')?.value || '';
+    
+    const rows = document.querySelectorAll('#emirlerTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const status = row.cells[13]?.textContent || '';
+        const type = row.cells[3]?.textContent || '';
+        const symbol = row.cells[2]?.textContent?.toLowerCase() || '';
+        const date = row.cells[1]?.textContent || '';
+        
+        let show = true;
+        
+        if (statusFilter && !status.includes(statusFilter)) {
+            show = false;
+        }
+        
+        if (typeFilter && type !== typeFilter) {
+            show = false;
+        }
+        
+        if (symbolFilter && !symbol.includes(symbolFilter)) {
+            show = false;
+        }
+        
+        if (dateFilter && !date.includes(dateFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Filtre sonucunu göster
+    const tableTitle = document.querySelector('.table-title');
+    if (tableTitle && rows.length > 0) {
+        const originalText = tableTitle.textContent.replace(/\(\d+\/\d+\)/, '').trim();
+        tableTitle.textContent = `${originalText} (${visibleCount}/${rows.length})`;
+    }
+}
 
 // Initialize on load
 window.addEventListener('load', function() {

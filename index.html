@@ -600,7 +600,7 @@ on:
 
 jobs:
   fetch-data:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -677,8 +677,6 @@ jobs:
     <script src="script.js"></script>
     
     <script>
-        // DİKKAT: API_URL burada tanımlanmıyor - script.js'de tanımlı
-        
         // Network status kontrolü
         function updateNetworkStatus() {
             const networkStatus = document.getElementById('networkStatus');
@@ -878,6 +876,7 @@ jobs:
         window.exportData = exportData;
         window.printTable = printTable;
         window.clearFilters = clearFilters;
+        window.applyFilters = applyFilters;
     </script>
 </body>
 </html>
