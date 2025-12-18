@@ -1,0 +1,25 @@
+name: Test Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Check Runner
+      run: |
+        echo "🎯 Raspberry Pi Runner çalışıyor!"
+        echo "🖥️  Hostname: $(hostname)"
+        echo "📅 Zaman: $(date)"
+        echo "✅ Runner aktif!"
+        
+    - name: Test Local API
+      run: |
+        echo "🔗 Local API test ediliyor..."
+        curl -s http://192.168.1.3:3000/api/emirler > api_test.json
+        echo "📦 API yanıtı (ilk 100 karakter):"
+        head -c 100 api_test.json
+        echo ""
+        echo "✅ API bağlantısı başarılı!"
