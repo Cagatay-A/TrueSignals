@@ -1,134 +1,62 @@
-name: Fetch Data from Local API
+name: Fetch Trading Data
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # Her 5 dakikada bir
+    - cron: "*/5 * * * *"
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   fetch-data:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Fetch API Data
-      id: fetch
-      run: |
-        echo "🎯 API'den veri alınıyor..."
+      - name: Fetch data from local API
+        run: |
+          curl -s http://192.168.1.3:3000/api/emirler > raw.json
 
-        API_URL="http://192.168.1.3:3000/api/emirler"
-        TMP_API_FILE="/tmp/api-response.json"
+      - name: Normalize JSON for frontend
+        run: |
+          python3 << 'EOF'
+          import json
+          from datetime import datetime
 
-        # API çağrısı
-        if ! curl -s --max-time 30 --retry 2 --retry-delay 3 "$API_URL" -o "$TMP_API_FILE"; then
-          echo "❌ API erişim hatası"
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "count=0" >> $GITHUB_OUTPUT
-          exit 0
-        fi
+          with open("raw.json", "r", encoding="utf-8") as f:
+              raw = json.load(f)
 
-        if [ ! -s "$TMP_API_FILE" ]; then
-          echo "❌ API boş yanıt döndü"
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "count=0" >> $GITHUB_OUTPUT
-          exit 0
-        fi
+          # Emir listesi nerede olursa olsun çek
+          emirler = []
 
-        mkdir -p public
-        cp "$TMP_API_FILE" public/data.json
+          if isinstance(raw, dict):
+              if "emirler" in raw:
+                  if isinstance(raw["emirler"], list):
+                      emirler = raw["emirler"]
+                  elif isinstance(raw["emirler"], dict) and "emirler" in raw["emirler"]:
+                      emirler = raw["emirler"]["emirler"]
 
-        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          output = {
+              "success": True,
+              "lastFetch": datetime.utcnow().isoformat() + "Z",
+              "source": "http://192.168.1.3:3000",
+              "emirler": emirler
+          }
 
-        # JSON işleme (güvenli)
-        python3 << 'EOF'
-import json
-import sys
+          with open("public/api-data.json", "w", encoding="utf-8") as f:
+              json.dump(output, f, ensure_ascii=False, indent=2)
 
-try:
-    with open("/tmp/api-response.json") as f:
-        api_data = json.load(f)
+          print(f"[OK] {len(emirler)} emir yazıldı.")
+          EOF
 
-    if isinstance(api_data, dict):
-        emirler = api_data.get("emirler", [])
-    elif isinstance(api_data, list):
-        emirler = api_data
-    else:
-        emirler = []
-
-    result = {
-        "success": True,
-        "lastFetch": "$TIMESTAMP",
-        "source": "http://192.168.1.3:3000",
-        "emirler": emirler
-    }
-
-    with open("public/api-data.json", "w") as f:
-        json.dump(result, f, indent=2)
-
-    print(f"✅ {len(emirler)} emir kaydedildi")
-    sys.exit(0)
-
-except Exception as e:
-    print(f"❌ Hata: {e}")
-    with open("public/api-data.json", "w") as f:
-        json.dump({"success": False, "error": str(e)}, f)
-    sys.exit(1)
-EOF
-
-        if [ $? -eq 0 ]; then
-          COUNT=$(python3 -c "import json; print(len(json.load(open('public/api-data.json')).get('emirler', [])))")
-          echo "success=true" >> $GITHUB_OUTPUT
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-        else
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "count=0" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Show result
-      run: |
-        echo "📂 public/ içeriği:"
-        ls -la public || true
-        echo ""
-        echo "📄 api-data.json (ilk 300 byte):"
-        head -c 300 public/api-data.json || true
-        echo ""
-
-    - name: Commit and Push
-      if: steps.fetch.outputs.success == 'true'
-      run: |
-        echo "💾 Git işlemleri başlıyor..."
-
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-
-        git add public/
-
-        if git diff --staged --quiet; then
-          echo "ℹ️ Değişiklik yok, commit atlanıyor."
-          exit 0
-        fi
-
-        git commit -m "📊 Veri güncellendi (${{ steps.fetch.outputs.count }} emir) - $(date +'%H:%M:%S')"
-
-        echo "🚀 Push yapılıyor..."
-        git push origin main
-
-        echo "✅ Git işlemleri tamamlandı"
-
-    - name: Summary
-      run: |
-        echo "========================================"
-        echo "🎉 GitHub Actions İşlemi Tamamlandı"
-        echo "========================================"
-        echo "✅ Başarılı: ${{ steps.fetch.outputs.success }}"
-        echo "📊 Emir Sayısı: ${{ steps.fetch.outputs.count }}"
-        echo "🌐 API JSON: https://cagatay-a.github.io/TrueSignals/api-data.json"
-        echo "📱 Site: https://cagatay-a.github.io/TrueSignals/"
-        echo "========================================"
+      - name: Commit and push if changed
+        run: |
+          if git status --porcelain | grep api-data.json; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/api-data.json
+            git commit -m "Update api-data.json from local API"
+            git push
+          else
+            echo "No changes to commit."
+          fi
