@@ -30,18 +30,26 @@ jobs:
             echo "$RESPONSE" > public/data.json
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             
-            # Python işlemini hata riskini önlemek için tek satıra yakın tutuyoruz
-            python3 -c "
+            # Python işlemi - düzgün formatlanmış
+            python3 << 'EOF'
 import json
+import sys
+
 try:
-    with open('public/data.json', 'r') as f: data = json.load(f)
+    with open('public/data.json', 'r') as f:
+        data = json.load(f)
+    
     emirler = data.get('emirler', []) if isinstance(data, dict) else data
     result = {'success': True, 'lastFetch': '$TIMESTAMP', 'emirler': emirler}
-    with open('public/api-data.json', 'w') as f: json.dump(result, f, indent=2)
+    
+    with open('public/api-data.json', 'w') as f:
+        json.dump(result, f, indent=2)
+    
     print(f'SUCCESS_{len(emirler)}')
-except Exception:
-    print('ERROR')
-            " > status.txt
+except Exception as e:
+    print(f'ERROR: {e}')
+    sys.exit(1)
+EOF > status.txt
             
             STATUS=$(cat status.txt)
             if [[ $STATUS == SUCCESS* ]]; then
