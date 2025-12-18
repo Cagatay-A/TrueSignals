@@ -121,20 +121,33 @@ async function loadDataFromGitHub() {
     }
 }
 
-// Process data
+// Process data - GÜNCELLENMİŞ VERSİYON
 function processData(data) {
     let processedData = [];
     let timestamp = new Date().toISOString();
     let source = 'github';
     let success = true;
     
+    console.log('[PROCESS DATA] Gelen veri:', data);
+    
     // Check data format
     if (data.success !== undefined && data.emirler) {
         // Format: {success, lastFetch, source, emirler}
-        processedData = data.emirler || [];
-        timestamp = data.lastFetch || timestamp;
-        source = data.source || source;
-        success = data.success;
+        
+        // YENİ: Eğer emirler içinde tekrar emirler varsa (nested yapı)
+        if (data.emirler.emirler !== undefined) {
+            console.log('[FORMAT 1A] Nested yapı tespit edildi');
+            processedData = data.emirler.emirler || [];
+            timestamp = data.lastFetch || timestamp;
+            source = data.source || source;
+            success = data.emirler.success || data.success;
+        } else {
+            // Normal format
+            processedData = data.emirler || [];
+            timestamp = data.lastFetch || timestamp;
+            source = data.source || source;
+            success = data.success;
+        }
         console.log(`[FORMAT 1] ${processedData.length} emir, Success: ${success}`);
         
     } else if (Array.isArray(data.emirler)) {
