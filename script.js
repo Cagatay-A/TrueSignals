@@ -163,14 +163,18 @@ function processData(data) {
     updateLastUpdate(timestamp, source, success);
     updateSystemStatus();
     
-    console.log(`[SUCCESS] ${processedData.length} emir işlendi`);
+    // TABLO GÜNCELLEMESİ
+    updateTable();
+    showTable();
+    
+    console.log(`[SUCCESS] ${processedData.length} emir işlendi, tablo güncellendi`);
     
     if (processedData.length > 0) {
         showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
     }
 }
 
-// Update display
+// Update display (card view)
 function updateDisplay() {
     const container = document.getElementById('emirListesi');
     if (!container) return;
@@ -259,6 +263,112 @@ function updateDisplay() {
         </div>
         `;
     }).join('');
+}
+
+// Update table (tablo görünümü)
+function updateTable() {
+    const tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    
+    if (emirListesi.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="17" style="text-align: center; padding: 50px;">
+                    <i class="fas fa-database fa-3x mb-3" style="color: #cbd5e0;"></i>
+                    <h4>Henüz emir bulunmamaktadır</h4>
+                    <p>GitHub Actions'in veri çekmesini bekleyin veya manuel yenileyin.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    emirListesi.forEach((emir, index) => {
+        const sembol = emir.Sembol || emir.symbol || 'N/A';
+        const tip = emir.Tip || emir.type || 'N/A';
+        const durum = emir.Status || emir.Durum || 'N/A';
+        const lot = emir.Lot || emir.volume || '0';
+        const giris = emir.GirisFiyati || emir.entry_price || '0';
+        const stopLoss = emir.StopLoss || emir.stop_loss || '-';
+        const takeProfit = emir.TakeProfit || emir.take_profit || '-';
+        const kapanis = emir.KapanisFiyati || emir.current_price || '0';
+        const karZarar = parseFloat(emir.KarZarar) || 0;
+        const karZararYuzde = parseFloat(emir.KarZararYuzde) || 0;
+        const tarih = emir.FormatliEmirZamani || emir.EmirZamani || emir['Tarih/Saat'] || 'N/A';
+        const rsi = emir.RSI || '-';
+        const macd = emir.MACD || '-';
+        const ema = emir.EMA || '-';
+        const stoach = emir.STOACH || '-';
+        const listType = emir.ListType || '-';
+        
+        // Durum badge'i
+        let statusBadge = '';
+        if (durum.toLowerCase().includes('açık')) {
+            statusBadge = `<span class="status-badge status-open">${durum}</span>`;
+        } else if (durum.toLowerCase().includes('kapalı')) {
+            statusBadge = `<span class="status-badge status-closed">${durum}</span>`;
+        } else if (durum.toLowerCase().includes('hedef')) {
+            statusBadge = `<span class="status-badge status-target">${durum}</span>`;
+        } else if (durum.toLowerCase().includes('zarar') || durum.toLowerCase().includes('stop')) {
+            statusBadge = `<span class="status-badge status-stop">${durum}</span>`;
+        } else {
+            statusBadge = durum;
+        }
+        
+        // Kar/Zarar renk sınıfı
+        const karZararClass = karZarar >= 0 ? 'positive' : 'negative';
+        const karZararText = karZarar >= 0 ? `+${formatNumber(karZarar, 2)}` : formatNumber(karZarar, 2);
+        const karZararYuzdeText = karZararYuzde >= 0 ? `+${formatNumber(karZararYuzde, 2)}%` : `${formatNumber(karZararYuzde, 2)}%`;
+        
+        // Tip renk sınıfı
+        const tipClass = tip.toLowerCase().includes('al') || tip.toLowerCase().includes('buy') ? 'positive' : 'negative';
+        
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${formatDateTime(tarih)}</td>
+                <td><strong>${sembol}</strong></td>
+                <td><span class="${tipClass}">${tip}</span></td>
+                <td>${formatNumber(lot)}</td>
+                <td>${formatNumber(giris, 4)}</td>
+                <td>${formatNumber(stopLoss, 4)}</td>
+                <td>${formatNumber(takeProfit, 4)}</td>
+                <td>${formatNumber(kapanis, 4)}</td>
+                <td>${rsi}</td>
+                <td>${macd}</td>
+                <td>${ema}</td>
+                <td>${stoach}</td>
+                <td>${statusBadge}</td>
+                <td>${listType}</td>
+                <td class="${karZararClass}">
+                    ${karZararText}<br>
+                    <small>${karZararYuzdeText}</small>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${index})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="showEmirChart(${index})">
+                        <i class="fas fa-chart-line"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// Tabloyu göster
+function showTable() {
+    const loading = document.getElementById('loading');
+    const errorMessage = document.getElementById('errorMessage');
+    const table = document.getElementById('emirlerTable');
+    
+    if (loading) loading.style.display = 'none';
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (table) table.style.display = 'table';
 }
 
 // Update statistics
@@ -395,6 +505,8 @@ function loadFromCache() {
             emirListesi = cache.data;
             updateDisplay();
             updateStats();
+            updateTable();
+            showTable();
             
             const element = document.getElementById('lastUpdate');
             if (element) {
@@ -425,7 +537,7 @@ function showLoading(show) {
 
 function showError(message) {
     const error = document.getElementById('errorMessage');
-    const errorText = error ? error.querySelector('p') : null;
+    const errorText = error ? error.querySelector('#errorText') : null;
     const retryBtn = document.getElementById('retryBtn');
     
     if (error) {
@@ -433,6 +545,14 @@ function showError(message) {
         if (errorText) errorText.innerHTML = message;
     }
     if (retryBtn) retryBtn.style.display = 'block';
+    
+    // Tabloyu da gizle
+    const table = document.getElementById('emirlerTable');
+    if (table) table.style.display = 'none';
+    
+    // Loading'i gizle
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'none';
 }
 
 function showNotification(message, type = 'info') {
@@ -509,6 +629,13 @@ Not: ${emir.Comment || 'Yok'}
 GitHub Actions ile otomatik çekilmiştir.
         `;
         alert(details);
+    }
+};
+
+window.showEmirChart = function(index) {
+    if (index >= 0 && index < emirListesi.length) {
+        const emir = emirListesi[index];
+        alert(`Grafik özelliği geliştirme aşamasında!\n\n${emir.Sembol || 'Emir'} için grafik gösterilecek.`);
     }
 };
 
