@@ -83,41 +83,32 @@ function setupEventListeners() {
     });
 }
 
-// Load data from GitHub Pages
+// script.js'de loadDataFromGitHub fonksiyonunu güncelleyin:
 async function loadDataFromGitHub() {
     try {
-        console.log('[GITHUB] Veri alınıyor:', API_URL);
-        
         showLoading(true);
         
-        // Cache busting için timestamp ekle
-        const cacheBustURL = API_URL + '?t=' + Date.now();
-        
-        const response = await fetch(cacheBustURL, {
-            headers: {
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache'
-            },
+        // Önce relative path'den dene
+        let response = await fetch("./api-data.json?t=" + Date.now(), {
+            headers: { 'Accept': 'application/json' },
             cache: 'no-cache'
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Fallback: absolute GitHub Pages URL
+            response = await fetch("https://cagatay-a.github.io/TrueSignals/api-data.json?t=" + Date.now());
         }
         
-        const data = await response.json();
-        console.log('[GITHUB SUCCESS] Veri alındı:', data);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
+        const data = await response.json();
         processData(data);
         
     } catch (error) {
-        console.error('[GITHUB ERROR] Veri yüklenemedi:', error);
-        
-        const cacheLoaded = loadFromCache();
-        
-        if (!cacheLoaded) {
-            showError(`Veri yüklenemedi: ${error.message}<br>
-                      <small>GitHub Actions'in çalıştığından emin olun.</small>`);
+        console.error('[ERROR]', error);
+        // Cache'den yükle
+        if (!loadFromCache()) {
+            showError("Veriler yüklenemedi. Lütfen internet bağlantınızı kontrol edin.");
         }
     } finally {
         showLoading(false);
