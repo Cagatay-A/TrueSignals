@@ -30,23 +30,23 @@ jobs:
             echo "$RESPONSE" > public/data.json
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             
-            # Python kodunu tek satırda güvenli çalıştırıyoruz
+            # Python işlemini hata riskini önlemek için basit tutuyoruz
             python3 -c "
-import json, os
+import json
 try:
-    with open('public/data.json', 'r') as f: api_data = json.load(f)
-    emirler = api_data.get('emirler', []) if isinstance(api_data, dict) else api_data
-    result = {'success': True, 'lastFetch': '$TIMESTAMP', 'source': 'local-api', 'emirler': emirler}
+    with open('public/data.json', 'r') as f: data = json.load(f)
+    emirler = data.get('emirler', []) if isinstance(data, dict) else data
+    result = {'success': True, 'lastFetch': '$TIMESTAMP', 'emirler': emirler}
     with open('public/api-data.json', 'w') as f: json.dump(result, f, indent=2)
     print(f'SUCCESS_{len(emirler)}')
 except Exception as e:
-    print(f'ERROR_{e}')
-            " > result.txt
+    print(f'ERROR')
+            " > status.txt
             
-            RESULT=$(cat result.txt)
-            if [[ $RESULT == SUCCESS* ]]; then
+            STATUS=$(cat status.txt)
+            if [[ $STATUS == SUCCESS* ]]; then
               echo "success=true" >> $GITHUB_OUTPUT
-              echo "count=${RESULT#SUCCESS_}" >> $GITHUB_OUTPUT
+              echo "count=${STATUS#SUCCESS_}" >> $GITHUB_OUTPUT
             else
               echo "success=false" >> $GITHUB_OUTPUT
             fi
@@ -61,6 +61,6 @@ except Exception as e:
           git config --local user.name "GitHub Action"
           git add public/
           if ! git diff --staged --quiet; then
-            git commit -m "📊 Veri: ${{ steps.fetch.outputs.count }} emir - $(date +'%H:%M')"
+            git commit -m "📊 Veri Güncellendi: ${{ steps.fetch.outputs.count }} emir"
             git push origin main
           fi
