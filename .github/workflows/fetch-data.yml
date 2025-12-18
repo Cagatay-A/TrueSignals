@@ -34,23 +34,25 @@ jobs:
         
         if [ "$API_RESPONSE" != "ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
           mkdir -p public
-          
-          # Ham API yanıtını kaydet
           echo "$API_RESPONSE" > public/data.json
           
-          # DOĞRU FORMAT: API'den gelen emirler dizisini çıkar
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          # Python ile JSON işleme - EMRİLER DİZİSİNİ ÇIKAR
+          # Değişkeni çevre değişkeni olarak aktarıyoruz (Daha güvenli yöntem)
+          export API_DATA_ENV="$API_RESPONSE"
+          export TIMESTAMP_ENV="$TIMESTAMP"
+
           python3 << 'EOF'
 import json
 import sys
+import os
 
 try:
-    # API yanıtını oku
-    api_data = json.loads('''$API_RESPONSE''')
+    # Veriyi çevre değişkeninden güvenle al
+    raw_data = os.environ.get('API_DATA_ENV', '[]')
+    timestamp = os.environ.get('TIMESTAMP_ENV', '')
+    api_data = json.loads(raw_data)
     
-    # emirler dizisini bul
     if isinstance(api_data, dict):
         emirler_list = api_data.get('emirler', [])
     elif isinstance(api_data, list):
@@ -58,10 +60,9 @@ try:
     else:
         emirler_list = []
     
-    # Doğru formatta kaydet
     result = {
         "success": True,
-        "lastFetch": "$TIMESTAMP",
+        "lastFetch": timestamp,
         "source": "http://192.168.1.3:3000",
         "emirler": emirler_list
     }
@@ -72,23 +73,17 @@ try:
     print(f"✅ {len(emirler_list)} emir kaydedildi")
     sys.exit(0)
     
-except json.JSONDecodeError as e:
-    print(f"❌ JSON decode hatası: {e}")
-    # Fallback
-    with open('public/api-data.json', 'w') as f:
-        json.dump({"success": False, "error": "Invalid JSON"}, f)
-    sys.exit(1)
 except Exception as e:
-    print(f"❌ Genel hata: {e}")
+    print(f"❌ Hata: {e}")
     with open('public/api-data.json', 'w') as f:
         json.dump({"success": False, "error": str(e)}, f)
     sys.exit(1)
 EOF
           
-          # Başarı durumunu kaydet
           if [ $? -eq 0 ]; then
             echo "success=true" >> $GITHUB_OUTPUT
-            echo "count=$(python3 -c "import json; d=json.load(open('public/api-data.json')); print(len(d.get('emirler', [])))")" >> $GITHUB_OUTPUT
+            COUNT=$(python3 -c "import json; d=json.load(open('public/api-data.json')); print(len(d.get('emirler', [])))")
+            echo "count=$COUNT" >> $GITHUB_OUTPUT
           else
             echo "success=false" >> $GITHUB_OUTPUT
             echo "count=0" >> $GITHUB_OUTPUT
@@ -99,56 +94,37 @@ EOF
           echo "success=false" >> $GITHUB_OUTPUT
           echo "count=0" >> $GITHUB_OUTPUT
         fi
-    
+
     - name: Show result
       run: |
         echo "📊 İşlem sonucu:"
         ls -la public/ 2>/dev/null || echo "public/ klasörü yok"
-        echo ""
         echo "📄 api-data.json önizleme:"
         head -c 300 public/api-data.json 2>/dev/null || echo "Dosya okunamadı"
-        echo "..."
 
     - name: Commit and Push
       if: steps.fetch.outputs.success == 'true'
       run: |
-        echo "💾 Git işlemleri..."
-        
-        # Git ayarları
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # Remote'dan güncel veriyi al
-        echo "🔄 Remote senkronizasyonu..."
         git fetch origin
         git reset --hard origin/main
         
-        # Dosyaları ekle
         git add public/
         
-        # Değişiklik kontrolü
         if git diff --staged --quiet; then
-          echo "ℹ️ Değişiklik yok, commit atlanıyor."
+          echo "ℹ️ Değişiklik yok."
           exit 0
         fi
         
-        # Commit yap
-        echo "💾 Commit yapılıyor..."
         git commit -m "📊 Veri güncellendi (${{ steps.fetch.outputs.count }} emir) - $(date +'%H:%M:%S')"
-        
-        # Push yap (token otomatik kullanılır)
-        echo "🚀 Push yapılıyor..."
         git push origin main
-        
-        echo "✅ Tüm işlemler tamamlandı!"
 
     - name: Summary
       run: |
         echo "========================================"
-        echo "🎉 GitHub Actions İşlemi Tamamlandı"
-        echo "========================================"
+        echo "🎉 İşlem Tamamlandı"
         echo "✅ Başarılı: ${{ steps.fetch.outputs.success }}"
         echo "📊 Emir Sayısı: ${{ steps.fetch.outputs.count }}"
-        echo "🌐 Erişilebilir: https://cagatay-a.github.io/TrueSignals/api-data.json"
-        echo "📱 Sayfa: https://cagatay-a.github.io/TrueSignals/"
         echo "========================================"
