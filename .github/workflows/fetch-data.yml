@@ -31,7 +31,10 @@ jobs:
           mkdir -p public
           echo "$API_RESPONSE" > public/data.json
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > public/api-data.json
+          
+          # API_RESPONSE zaten emirler içeriyor, direk kullan
+          echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '$(echo $API_RESPONSE | jq '.emirler // .')' }' > public/api-data.json
+          
           echo "success=true" >> $GITHUB_OUTPUT
         else
           echo "success=false" >> $GITHUB_OUTPUT
