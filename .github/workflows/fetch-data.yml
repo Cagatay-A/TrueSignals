@@ -15,40 +15,39 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Fetch API Data
-      id: fetch
-      run: |
-        echo "🎯 API'den veri alınıyor..."
-        
-        # API'den veri al
-        API_RESPONSE=$(curl -s \
-          --max-time 30 \
-          --retry 2 \
-          --retry-delay 3 \
-          "http://192.168.1.3:3000/api/emirler" || echo "ERROR")
-        
-        if [ "$API_RESPONSE" != "ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
-          mkdir -p public
-          echo "$API_RESPONSE" > public/data.json
+      - name: Fetch API Data
+        id: fetch
+        run: |
+          echo "🎯 API'den veri alınıyor..."
           
-          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # API'den veri al
+          API_RESPONSE=$(curl -s \
+            --max-time 30 \
+            --retry 2 \
+            --retry-delay 3 \
+            "http://192.168.1.3:3000/api/emirler" || echo "ERROR")
           
-          # Değişkeni çevre değişkeni olarak aktarıyoruz (Daha güvenli yöntem)
-          export API_DATA_ENV="$API_RESPONSE"
-          export TIMESTAMP_ENV="$TIMESTAMP"
+          if [ "$API_RESPONSE" != "ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
+            mkdir -p public
+            echo "$API_RESPONSE" > public/data.json
+            
+            TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            
+            # Python için çevre değişkenlerini ayarla
+            export API_DATA_ENV="$API_RESPONSE"
+            export TIMESTAMP_ENV="$TIMESTAMP"
 
-          python3 << 'EOF'
+            python3 << 'EOF'
 import json
 import sys
 import os
 
 try:
-    # Veriyi çevre değişkeninden güvenle al
     raw_data = os.environ.get('API_DATA_ENV', '[]')
     timestamp = os.environ.get('TIMESTAMP_ENV', '')
     api_data = json.loads(raw_data)
@@ -72,59 +71,34 @@ try:
     
     print(f"✅ {len(emirler_list)} emir kaydedildi")
     sys.exit(0)
-    
 except Exception as e:
     print(f"❌ Hata: {e}")
-    with open('public/api-data.json', 'w') as f:
-        json.dump({"success": False, "error": str(e)}, f)
     sys.exit(1)
 EOF
-          
-          if [ $? -eq 0 ]; then
-            echo "success=true" >> $GITHUB_OUTPUT
-            COUNT=$(python3 -c "import json; d=json.load(open('public/api-data.json')); print(len(d.get('emirler', [])))")
-            echo "count=$COUNT" >> $GITHUB_OUTPUT
+            if [ $? -eq 0 ]; then
+              echo "success=true" >> $GITHUB_OUTPUT
+              COUNT=$(python3 -c "import json; d=json.load(open('public/api-data.json')); print(len(d.get('emirler', [])))")
+              echo "count=$COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "success=false" >> $GITHUB_OUTPUT
+            fi
           else
+            echo "❌ API hatası"
             echo "success=false" >> $GITHUB_OUTPUT
-            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push
+        if: steps.fetch.outputs.success == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add public/
+          
+          if git diff --staged --quiet; then
+            echo "ℹ️ Değişiklik yok."
+            exit 0
           fi
           
-        else
-          echo "❌ API hatası"
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "count=0" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Show result
-      run: |
-        echo "📊 İşlem sonucu:"
-        ls -la public/ 2>/dev/null || echo "public/ klasörü yok"
-        echo "📄 api-data.json önizleme:"
-        head -c 300 public/api-data.json 2>/dev/null || echo "Dosya okunamadı"
-
-    - name: Commit and Push
-      if: steps.fetch.outputs.success == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        git fetch origin
-        git reset --hard origin/main
-        
-        git add public/
-        
-        if git diff --staged --quiet; then
-          echo "ℹ️ Değişiklik yok."
-          exit 0
-        fi
-        
-        git commit -m "📊 Veri güncellendi (${{ steps.fetch.outputs.count }} emir) - $(date +'%H:%M:%S')"
-        git push origin main
-
-    - name: Summary
-      run: |
-        echo "========================================"
-        echo "🎉 İşlem Tamamlandı"
-        echo "✅ Başarılı: ${{ steps.fetch.outputs.success }}"
-        echo "📊 Emir Sayısı: ${{ steps.fetch.outputs.count }}"
-        echo "========================================"
+          git commit -m "📊 Veri güncellendi (${{ steps.fetch.outputs.count }} emir) - $(date +'%H:%M:%S')"
+          git push origin main
