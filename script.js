@@ -85,7 +85,7 @@ function setupEventListeners() {
     });
 }
 
-// YENİ loadDataFromGitHub() - ÇALIŞAN VERSİYON
+// YENİ VE BASİT loadDataFromGitHub()
 async function loadDataFromGitHub() {
     try {
         showLoading(true);
@@ -93,9 +93,9 @@ async function loadDataFromGitHub() {
         // Cache busting için timestamp
         const cacheBuster = '?t=' + Date.now();
         
-        console.log('[FETCH] Trying Raw GitHub URL for fresh data:', RAW_GITHUB_URL + cacheBuster);
+        console.log('[FETCH] Loading from:', RAW_GITHUB_URL + cacheBuster);
         
-        // SADECE RAW GITHUB URL'sini kullan (cache sorunu için)
+        // SADECE RAW GITHUB URL'sini kullan
         const response = await fetch(RAW_GITHUB_URL + cacheBuster, {
             headers: { 
                 'Accept': 'application/json',
@@ -109,40 +109,29 @@ async function loadDataFromGitHub() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const responseText = await response.text();
-        console.log('[FETCH SUCCESS] Response length:', responseText.length);
-        console.log('[FETCH SUCCESS] First 500 chars:', responseText.substring(0, 500));
-        
-        // JSON parse öncesi temizleme
-        let cleanedText = responseText.trim();
-        if (cleanedText.startsWith('"') && cleanedText.endsWith('"')) {
-            cleanedText = cleanedText.substring(1, cleanedText.length - 1);
-            cleanedText = cleanedText.replace(/\\"/g, '"');
-        }
-        
-        const data = JSON.parse(cleanedText);
-        console.log('[FETCH SUCCESS] Parsed data structure:', {
+        const data = await response.json();
+        console.log('[FETCH SUCCESS] Data structure check:', {
             success: data.success,
             hasEmirler: !!data.emirler,
             emirlerType: typeof data.emirler,
-            keys: Object.keys(data)
+            hasNestedEmirler: data.emirler && data.emirler.emirler ? true : false
         });
         
-        processData(data);
+        processDataSimple(data);
         
     } catch (error) {
         console.error('[FETCH ERROR]', error);
         
         // Fallback: GitHub Pages URL
         try {
-            console.log('[FETCH FALLBACK] Trying GitHub Pages as fallback');
+            console.log('[FETCH FALLBACK] Trying GitHub Pages');
             const fallbackResponse = await fetch(GITHUB_PAGES_URL + '?t=' + Date.now(), {
                 cache: 'no-store'
             });
             if (fallbackResponse.ok) {
                 const fallbackData = await fallbackResponse.json();
                 console.log('[FETCH FALLBACK] GitHub Pages data loaded');
-                processData(fallbackData);
+                processDataSimple(fallbackData);
                 return;
             }
         } catch (fallbackError) {
@@ -158,100 +147,79 @@ async function loadDataFromGitHub() {
     }
 }
 
-// GÜNCELLENMİŞ processData() - HATASIZ VERSİYON
-function processData(data) {
-    console.log('[PROCESS] Starting data processing...');
-    console.log('[PROCESS] Raw data received:', {
-        success: data.success,
-        hasEmirler: !!data.emirler,
-        emirlerType: typeof data.emirler,
-        emirlerKeys: data.emirler ? Object.keys(data.emirler) : 'none'
-    });
+// BASİT VE ETKİLİ processDataSimple() - BU KESİN ÇALIŞIR!
+function processDataSimple(data) {
+    console.log('[PROCESS] Starting simple data processing...');
+    console.log('[PROCESS] Full data object:', data);
     
     let processedData = [];
     let timestamp = new Date().toISOString();
     let source = 'github';
-    let success = true;
+    let success = false;
     
-    // FIXED DATA PARSING LOGIC
-    if (data.success === true && data.emirler) {
-        // CASE 1: data.emirler is an object with emirler array inside
-        if (typeof data.emirler === 'object' && data.emirler.emirler && Array.isArray(data.emirler.emirler)) {
+    // EN BASİT YAKLAŞIM: Tüm olasılıkları kontrol et
+    if (data.success === true) {
+        success = true;
+        timestamp = data.lastFetch || timestamp;
+        source = data.source || source;
+        
+        // DURUM 1: İç içe yapı - {emirler: {emirler: [...], success: true}}
+        if (data.emirler && data.emirler.emirler && Array.isArray(data.emirler.emirler)) {
             processedData = data.emirler.emirler;
-            timestamp = data.lastFetch || timestamp;
-            source = data.source || source;
-            success = data.emirler.success !== false;
-            console.log(`[PROCESS CASE 1] Double-nested structure: ${processedData.length} emir found`);
-            
-        } 
-        // CASE 2: data.emirler is directly an array
-        else if (Array.isArray(data.emirler)) {
-            processedData = data.emirler;
-            timestamp = data.lastFetch || timestamp;
-            source = data.source || source;
-            success = data.success;
-            console.log(`[PROCESS CASE 2] Direct array structure: ${processedData.length} emir found`);
-            
-        } 
-        // CASE 3: data.emirler is an object but no emirler array
-        else if (typeof data.emirler === 'object') {
-            console.log('[PROCESS CASE 3] emirler is object but no emirler array:', data.emirler);
-            // Try to convert object values to array
-            processedData = Object.values(data.emirler).filter(item => 
-                typeof item === 'object' && item !== null
-            );
-            timestamp = data.lastFetch || timestamp;
-            source = data.source || source;
-            success = data.success;
-            console.log(`[PROCESS CASE 3] Converted object to array: ${processedData.length} emir found`);
+            console.log(`[PROCESS] CASE 1 - Nested structure: ${processedData.length} emir`);
         }
-    } 
-    // CASE 4: Initial template or error
-    else if (data.success === false) {
-        console.log('[PROCESS CASE 4] Initial template or error state:', data.message || 'No message');
-        processedData = [];
+        // DURUM 2: Düz yapı - {emirler: [...], success: true}
+        else if (data.emirler && Array.isArray(data.emirler)) {
+            processedData = data.emirler;
+            console.log(`[PROCESS] CASE 2 - Flat array: ${processedData.length} emir`);
+        }
+        // DURUM 3: emirler bir nesne ama emirler dizisi yok
+        else if (data.emirler && typeof data.emirler === 'object') {
+            console.log('[PROCESS] CASE 3 - Object without emirler array, checking structure:', data.emirler);
+            // Eğer nesnenin içinde dizi varsa onu al
+            for (const key in data.emirler) {
+                if (Array.isArray(data.emirler[key])) {
+                    processedData = data.emirler[key];
+                    console.log(`[PROCESS] Found array in property "${key}": ${processedData.length} emir`);
+                    break;
+                }
+            }
+        }
+    } else if (data.success === false) {
+        console.log('[PROCESS] CASE 4 - Initial template:', data.message);
         success = false;
         timestamp = data.lastFetch || timestamp;
         source = data.source || source;
+        processedData = [];
     }
     
-    // DEBUG: Show first emir if available
+    // DEBUG: Verileri göster
+    console.log(`[PROCESS RESULT] Processed ${processedData.length} emir, Success: ${success}`);
     if (processedData.length > 0) {
-        console.log('[PROCESS DEBUG] First emir object:', processedData[0]);
-        console.log('[PROCESS DEBUG] First emir keys:', Object.keys(processedData[0]));
-        console.log('[PROCESS DEBUG] First emir values:', {
+        console.log('[PROCESS DEBUG] First emir details:', {
             Sembol: processedData[0].Sembol,
             Tip: processedData[0].Tip,
             Status: processedData[0].Status,
-            KarZarar: processedData[0].KarZarar
+            KarZarar: processedData[0].KarZarar,
+            Comment: processedData[0].Comment
         });
+        console.log('[PROCESS DEBUG] All emir keys:', Object.keys(processedData[0]));
     }
     
-    // Fix Turkish encoding in each emir
-    if (processedData.length > 0) {
-        processedData = processedData.map(emir => fixTurkishEncodingInObject(emir));
-    }
-    
-    // Cache data
-    if (processedData.length > 0) {
-        cacheData(processedData);
-    }
+    // Update global list
+    emirListesi = processedData;
     
     // Update UI
-    emirListesi = processedData;
     updateTable();
-    showTable();
     updateStats();
     updateLastUpdate(timestamp, source, success);
     updateSystemStatus();
     
-    console.log(`[PROCESS FINAL] ${processedData.length} emir processed, Success: ${success}`);
-    
     // Show notification
     if (processedData.length > 0) {
         showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
-    } else if (success === false) {
-        showNotification('GitHub Actions henüz çalışmadı veya emir bulunmuyor', 'warning');
+    } else if (!success) {
+        showNotification('GitHub Actions henüz çalışmadı', 'warning');
     }
 }
 
@@ -273,7 +241,20 @@ function fixTurkishEncoding(text) {
         'Ã–': 'Ö',
         'Ãœ': 'Ü',
         'KapalÄ±': 'Kapalı',
-        'UlaÅŸÄ±ldÄ±': 'Ulaşıldı'
+        'UlaÅŸÄ±ldÄ±': 'Ulaşıldı',
+        // Unicode escape sequences
+        '\\u0131': 'ı',
+        '\\u0130': 'İ',
+        '\\u011f': 'ğ',
+        '\\u011e': 'Ğ',
+        '\\u015f': 'ş',
+        '\\u015e': 'Ş',
+        '\\u00e7': 'ç',
+        '\\u00c7': 'Ç',
+        '\\u00f6': 'ö',
+        '\\u00d6': 'Ö',
+        '\\u00fc': 'ü',
+        '\\u00dc': 'Ü'
     };
     
     let fixedText = text;
@@ -284,7 +265,7 @@ function fixTurkishEncoding(text) {
     return fixedText;
 }
 
-// Fix Turkish encoding in an object recursively
+// Fix Turkish encoding in an object
 function fixTurkishEncodingInObject(obj) {
     if (typeof obj === 'string') {
         return fixTurkishEncoding(obj);
@@ -296,23 +277,22 @@ function fixTurkishEncodingInObject(obj) {
             fixedObj[key] = fixTurkishEncodingInObject(value);
         }
         return fixedObj;
-    } else {
-        return obj;
     }
+    return obj;
 }
 
 // Update table (tablo görünümü)
 function updateTable() {
     const tbody = document.getElementById('tableBody');
     if (!tbody) {
-        console.warn('[TABLE] tableBody not found');
+        console.error('[TABLE] tableBody not found!');
         return;
     }
     
     if (emirListesi.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="17" style="text-align: center; padding: 50px;">
+                <td colspan="13" style="text-align: center; padding: 50px;">
                     <i class="fas fa-database fa-3x mb-3" style="color: #cbd5e0;"></i>
                     <h4>Henüz emir bulunmamaktadır</h4>
                     <p>GitHub Actions'in veri çekmesini bekleyin veya manuel yenileyin.</p>
@@ -327,28 +307,32 @@ function updateTable() {
     
     let html = '';
     emirListesi.forEach((emir, index) => {
-        const sembol = emir.Sembol || emir.symbol || 'N/A';
-        const tip = emir.Tip || emir.type || 'N/A';
-        const durum = emir.Status || emir.Durum || 'N/A';
-        const lot = emir.Lot || emir.volume || '0';
-        const giris = emir.GirisFiyati || emir.entry_price || '0';
-        const stopLoss = emir.StopLoss || emir.stop_loss || '-';
-        const takeProfit = emir.TakeProfit || emir.take_profit || '-';
-        const kapanis = emir.KapanisFiyati || emir.current_price || '0';
-        const karZarar = parseFloat(emir.KarZarar) || 0;
-        const karZararYuzde = parseFloat(emir.KarZararYuzde) || 0;
-        const tarih = emir.FormatliEmirZamani || emir.EmirZamani || emir['Tarih/Saat'] || 'N/A';
-        const comment = emir.Comment || '-';
+        // Fix Turkish characters
+        const fixedEmir = fixTurkishEncodingInObject(emir);
+        
+        const sembol = fixedEmir.Sembol || 'N/A';
+        const tip = fixedEmir.Tip || 'N/A';
+        const durum = fixedEmir.Status || 'N/A';
+        const lot = fixedEmir.Lot || '0';
+        const giris = fixedEmir.GirisFiyati || '0';
+        const stopLoss = fixedEmir.StopLoss;
+        const takeProfit = fixedEmir.TakeProfit;
+        const kapanis = fixedEmir.KapanisFiyati || '0';
+        const karZarar = parseFloat(fixedEmir.KarZarar) || 0;
+        const karZararYuzde = parseFloat(fixedEmir.KarZararYuzde) || 0;
+        const tarih = fixedEmir.FormatliEmirZamani || fixedEmir.EmirZamani || 'N/A';
+        const comment = fixedEmir.Comment || '-';
         
         // Durum badge'i
         let statusBadge = '';
-        if (durum.toLowerCase().includes('açık') || durum.toLowerCase().includes('open')) {
+        const durumLower = durum.toLowerCase();
+        if (durumLower.includes('açık') || durumLower.includes('open')) {
             statusBadge = `<span class="status-badge status-open">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('kapalı') || durum.toLowerCase().includes('closed')) {
+        } else if (durumLower.includes('kapalı') || durumLower.includes('closed')) {
             statusBadge = `<span class="status-badge status-closed">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('hedef') || durum.toLowerCase().includes('target')) {
+        } else if (durumLower.includes('hedef') || durumLower.includes('target')) {
             statusBadge = `<span class="status-badge status-target">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('zarar') || durum.toLowerCase().includes('stop') || durum.toLowerCase().includes('loss')) {
+        } else if (durumLower.includes('zarar') || durumLower.includes('stop') || durumLower.includes('loss')) {
             statusBadge = `<span class="status-badge status-stop">${durum}</span>`;
         } else {
             statusBadge = `<span class="status-badge">${durum}</span>`;
@@ -370,8 +354,8 @@ function updateTable() {
                 <td><span class="${tipClass}">${tip}</span></td>
                 <td>${formatNumber(lot)}</td>
                 <td>${formatNumber(giris, 4)}</td>
-                <td>${formatNumber(stopLoss, 4)}</td>
-                <td>${formatNumber(takeProfit, 4)}</td>
+                <td>${stopLoss ? formatNumber(stopLoss, 4) : '-'}</td>
+                <td>${takeProfit ? formatNumber(takeProfit, 4) : '-'}</td>
                 <td>${formatNumber(kapanis, 4)}</td>
                 <td>${statusBadge}</td>
                 <td>${comment}</td>
@@ -405,38 +389,10 @@ function showTable() {
 
 // Update statistics
 function updateStats() {
-    const stats = calculateStats();
-    
-    const elements = {
-        'toplamEmir': stats.total,
-        'acikEmirler': stats.open,
-        'kapaliEmirler': stats.closed,
-        'toplamKarZarar': `${formatNumber(stats.totalProfit, 2)}`
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-            
-            if (id === 'toplamKarZarar') {
-                element.className = stats.totalProfit >= 0 ? 'positive' : 'negative';
-            }
-        }
-    });
-    
-    // Update page title
-    document.title = stats.total > 0 
-        ? `(${stats.total}) TrueSignal - Emir Takip` 
-        : 'TrueSignal - Emir Takip';
-}
-
-// Calculate statistics
-function calculateStats() {
     const total = emirListesi.length;
     
     const open = emirListesi.filter(e => {
-        const durum = (e.Status || e.Durum || '').toLowerCase();
+        const durum = (e.Status || '').toLowerCase();
         return durum.includes('açık') || durum.includes('open');
     }).length;
     
@@ -446,7 +402,28 @@ function calculateStats() {
         return sum + (parseFloat(emir.KarZarar) || 0);
     }, 0);
     
-    return { total, open, closed, totalProfit };
+    // Update elements
+    const elements = {
+        'toplamEmir': total,
+        'acikEmirler': open,
+        'kapaliEmirler': closed,
+        'toplamKarZarar': `${formatNumber(totalProfit, 2)}`
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+            if (id === 'toplamKarZarar') {
+                element.className = totalProfit >= 0 ? 'positive' : 'negative';
+            }
+        }
+    });
+    
+    // Update page title
+    document.title = total > 0 
+        ? `(${total}) TrueSignal - Emir Takip` 
+        : 'TrueSignal - Emir Takip';
 }
 
 // Update last update time
@@ -621,7 +598,6 @@ function formatNumber(value, decimals = 2) {
 function formatDateTime(datetimeStr) {
     if (!datetimeStr) return '-';
     try {
-        // Try to parse as Date
         const date = new Date(datetimeStr);
         if (!isNaN(date.getTime())) {
             return date.toLocaleString('tr-TR', {
@@ -632,7 +608,6 @@ function formatDateTime(datetimeStr) {
                 minute: '2-digit'
             });
         }
-        // If not a valid date, return original
         return datetimeStr;
     } catch (error) {
         return datetimeStr;
@@ -649,68 +624,21 @@ Emir Detayları:
 ID: ${emir.Id || emir.ID || index + 1}
 Sembol: ${emir.Sembol || 'N/A'}
 Tip: ${emir.Tip || 'N/A'}
-Durum: ${emir.Status || emir.Durum || 'N/A'}
-Lot: ${formatNumber(emir.Lot) || '0'}
-Giriş Fiyatı: ${formatNumber(emir.GirisFiyati, 4) || '0'}
-Kapanış Fiyatı: ${formatNumber(emir.KapanisFiyati, 4) || '0'}
+Durum: ${emir.Status || 'N/A'}
+Lot: ${formatNumber(emir.Lot)}
+Giriş Fiyatı: ${formatNumber(emir.GirisFiyati, 4)}
+Kapanış Fiyatı: ${formatNumber(emir.KapanisFiyati, 4)}
 Stop Loss: ${emir.StopLoss || 'Yok'}
 Take Profit: ${emir.TakeProfit || 'Yok'}
-Kar/Zarar: ${formatNumber(emir.KarZarar, 2) || '0'} (${formatNumber(emir.KarZararYuzde, 2) || '0'}%)
+Kar/Zarar: ${formatNumber(emir.KarZarar, 2)} (${formatNumber(emir.KarZararYuzde, 2)}%)
 Emir Zamanı: ${formatDateTime(emir.FormatliEmirZamani || emir.EmirZamani)}
 Kapanış Zamanı: ${formatDateTime(emir.FormatliKapanisZamani || emir.KapanisZamani)}
 Not: ${emir.Comment || 'Yok'}
 ──────────────
-GitHub Actions ile otomatik çekilmiştir.
         `;
         alert(details);
     }
 };
-
-// Filtreleme fonksiyonu
-function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter')?.value || '';
-    const typeFilter = document.getElementById('typeFilter')?.value || '';
-    const symbolFilter = document.getElementById('symbolFilter')?.value.toLowerCase() || '';
-    const dateFilter = document.getElementById('dateFilter')?.value || '';
-    
-    const rows = document.querySelectorAll('#emirlerTable tbody tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const status = row.cells[9]?.textContent || '';
-        const type = row.cells[3]?.textContent || '';
-        const symbol = row.cells[2]?.textContent?.toLowerCase() || '';
-        const date = row.cells[1]?.textContent || '';
-        
-        let show = true;
-        
-        if (statusFilter && !status.includes(statusFilter)) {
-            show = false;
-        }
-        
-        if (typeFilter && type !== typeFilter) {
-            show = false;
-        }
-        
-        if (symbolFilter && !symbol.includes(symbolFilter)) {
-            show = false;
-        }
-        
-        if (dateFilter && !date.includes(dateFilter)) {
-            show = false;
-        }
-        
-        row.style.display = show ? '' : 'none';
-        if (show) visibleCount++;
-    });
-    
-    // Filtre sonucunu göster
-    const tableTitle = document.querySelector('.table-title');
-    if (tableTitle && rows.length > 0) {
-        const originalText = tableTitle.textContent.replace(/\(\d+\/\d+\)/, '').trim();
-        tableTitle.textContent = `${originalText} (${visibleCount}/${rows.length})`;
-    }
-}
 
 // Initialize on load
 window.addEventListener('load', function() {
