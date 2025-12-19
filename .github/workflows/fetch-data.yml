@@ -102,25 +102,24 @@ jobs:
         echo "..."
     
     - name: Commit and Push changes
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: |
-    echo "💾 Değişiklikler kaydediliyor..."
-    
-    # Git ayarları
-    git config --local user.email "action@github.com"
-    git config --local user.name "GitHub Action"
-    
-    # Değişiklikleri ekle
-    git add public/
-    
-    # HER ZAMAN COMMIT YAP
-    git commit -m "📊 API Verileri Güncellendi (${{ steps.fetch-data.outputs.count || 0 }} emir) - $(date +'%H:%M:%S')" --allow-empty
-    
-    echo "🚀 Değişiklikler gönderiliyor..."
-    git push
-    echo "✅ Gönderim tamamlandı"
-
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "💾 Değişiklikler kaydediliyor..."
+        
+        # Git ayarları
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Değişiklikleri ekle
+        git add public/
+        
+        # HER ZAMAN COMMIT YAP (allow-empty ile)
+        git commit -m "📊 Veri Güncellendi (${{ steps.fetch-data.outputs.count || 0 }} emir) - $(date +'%H:%M:%S')" --allow-empty
+        
+        echo "🚀 Değişiklikler gönderiliyor..."
+        git push
+        echo "✅ Gönderim tamamlandı"
     
     - name: Summary
       run: |
