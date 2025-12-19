@@ -3,6 +3,683 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueSignal - Emir Takip Sistemi</title>
+    
+    <!-- CSS Dosyaları -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Inline CSS for critical styles -->
+    <style>
+        /* Critical styles that need to work immediately */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #374151;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header styles */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.2rem;
+            position: relative;
+            z-index: 1;
+            margin-top: 0.5rem;
+        }
+        
+        /* Navigation styles */
+        nav {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 0;
+            margin: 0;
+        }
+        
+        nav ul li a {
+            text-decoration: none;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+        
+        nav ul li a:hover,
+        nav ul li a.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Main content */
+        main {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Loading styles */
+        #loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        /* Responsive fixes */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 1.5rem;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            nav ul {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            nav ul li a {
+                justify-content: center;
+            }
+            
+            main {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-signal"></i> TrueSignal Emir Takip</h1>
+            <p class="subtitle">Gerçek Zamanlı Emir Takip Sistemi</p>
+        </header>
+        
+<nav>
+    <ul>
+        <li><a href="index.html" class="active"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+        <li><a href="about.html"><i class="fas fa-info-circle"></i> Hakkında</a></li>
+        <li><a href="contact.html"><i class="fas fa-envelope"></i> İletişim</a></li>
+        <li><a href="404.html" title="404 Sayfasını Test Et"><i class="fas fa-exclamation-triangle"></i> 404 Test</a></li>
+        <li><a href="2025-12-19.html"><i class="fas fa-calendar-day"></i> 19 Aralık 2025</a></li>
+    </ul>
+</nav>
+        
+        <main class="main-content">
+            <div class="hero-section">
+                <div class="hero-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h2>Gerçek Zamanlı Emir Takibi</h2>
+                <p>GitHub Actions ile otomatik senkronize edilmiş emir verileri</p>
+                <div class="data-source">
+                    <i class="fas fa-database"></i>
+                    <strong>Veri Kaynağı:</strong> GitHub Actions → Local API → GitHub Pages
+                </div>
+            </div>
+            
+            <!-- Emirler Tablosu Bölümü -->
+            <div class="table-section">
+                <h2 class="table-title"><i class="fas fa-table"></i> Emirler Tablosu</h2>
+                
+                <div class="table-controls">
+                    <div>
+                        <h3 style="margin: 0; color: #4a5568;">Gerçek Zamanlı Emir Verileri</h3>
+                        <p class="last-update" id="lastUpdate">Son güncelleme: Yükleniyor...</p>
+                    </div>
+                    <div class="button-group">
+                        <button id="refreshBtn" class="btn btn-primary refresh-btn">
+                            <i class="fas fa-sync-alt"></i> Verileri Yenile
+                        </button>
+                        <button class="btn btn-success export-btn" onclick="exportData()">
+                            <i class="fas fa-download"></i> CSV İndir
+                        </button>
+                        <button class="btn btn-secondary" onclick="printTable()">
+                            <i class="fas fa-print"></i> Yazdır
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="clearFilters()">
+                            <i class="fas fa-filter-circle-xmark"></i> Filtreleri Temizle
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filtre Kontrolleri -->
+                <div class="filter-controls">
+                    <select id="statusFilter" class="form-select form-select-sm" style="max-width: 200px;">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="Açık">Açık</option>
+                        <option value="Kapalı">Kapalı</option>
+                        <option value="Hedefe Ulaşıldı">Hedefe Ulaşıldı</option>
+                        <option value="Zarar Durdur">Zarar Durdur</option>
+                    </select>
+                    
+                    <select id="typeFilter" class="form-select form-select-sm" style="max-width: 200px;">
+                        <option value="">Tüm Türler</option>
+                        <option value="AL">AL</option>
+                        <option value="SAT">SAT</option>
+                        <option value="BUY">BUY</option>
+                        <option value="SELL">SELL</option>
+                    </select>
+                    
+                    <input type="text" id="symbolFilter" class="form-control form-control-sm" placeholder="Sembol Ara..." style="max-width: 200px;">
+                    
+                    <input type="date" id="dateFilter" class="form-control form-control-sm" style="max-width: 200px;">
+                </div>
+                
+                <div class="table-container">
+                    <div id="loading" class="loading">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <p class="mt-3 pulse">Emir verileri GitHub Pages'ten yükleniyor...</p>
+                        <small class="text-muted">Veriler her 5 dakikada bir otomatik güncellenir</small>
+                    </div>
+                    
+                    <div id="errorMessage" class="error-message" style="display: none;">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h4>Veriler Yüklenemedi</h4>
+                        <p id="errorText">API'ye bağlanırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.</p>
+                        <button id="retryBtn" class="btn btn-outline-danger mt-2">
+                            <i class="fas fa-redo"></i> Tekrar Dene
+                        </button>
+                        <button onclick="window.location.reload()" class="btn btn-outline-primary mt-2 ms-2">
+                            <i class="fas fa-sync"></i> Sayfayı Yenile
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table id="emirlerTable" class="table table-striped table-hover" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tarih/Saat</th>
+                                    <th>Sembol</th>
+                                    <th>Tür</th>
+                                    <th>Lot</th>
+                                    <th>Giriş Fiyatı</th>
+                                    <th>Stop Loss</th>
+                                    <th>Take Profit</th>
+                                    <th>Kapanış Fiyatı</th>
+                                    <th>RSI</th>
+                                    <th>MACD</th>
+                                    <th>EMA</th>
+                                    <th>STOACH</th>
+                                    <th>Durum</th>
+                                    <th>ListType</th>
+                                    <th>Kar/Zarar</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Veriler JavaScript ile buraya eklenecek -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="info-box mt-3">
+                    <h4><i class="fas fa-info-circle"></i> Sistem Bilgisi</h4>
+                    <p>Bu tablo <strong>GitHub Actions</strong> tarafından her 5 dakikada bir güncellenir.</p>
+                    <p>• <span class="positive">Yeşil</span> renk AL emirlerini veya kar durumunu gösterir</p>
+                    <p>• <span class="negative">Kırmızı</span> renk SAT emirlerini veya zarar durumunu gösterir</p>
+                    <p>• Veriler otomatik olarak her 30 saniyede bir yenilenir</p>
+                    <p>• <strong>Veri Akışı:</strong> Local API → GitHub Actions → GitHub Pages JSON → Bu Sayfa</p>
+                    <p>• Çevrimdışı durumda cache verileri gösterilir</p>
+                </div>
+            </div>
+            
+            <div class="url-demo">
+                <h3><i class="fas fa-exchange-alt"></i> GitHub Pages URL Örnekleri</h3>
+                <p>Aşağıdaki URL'ler üzerinden JSON verilerine erişebilirsiniz:</p>
+                
+                <div class="url-example">
+                    <div class="good-url">
+                        https://cagatay-a.github.io/TrueSignals/api-data.json
+                    </div>
+                    <div class="good-url">
+                        https://cagatay-a.github.io/TrueSignals/data.json
+                    </div>
+                </div>
+                
+                <p class="mt-3">
+                    <i class="fas fa-code"></i> JSON verilerini test etmek için:
+                    <a href="https://cagatay-a.github.io/TrueSignals/api-data.json" target="_blank" class="test-link">
+                        JSON Verilerini Görüntüle
+                    </a>
+                </p>
+            </div>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h4>Otomatik Senkronizasyon</h4>
+                    <p>GitHub Actions ile her 5 dakikada bir veri senkronizasyonu</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>HTTPS Güvenliği</h4>
+                    <p>GitHub Pages üzerinden HTTPS güvenli bağlantı</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h4>Gerçek Veri</h4>
+                    <p>Local API'den alınan gerçek zamanlı veriler</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Responsive Tasarım</h4>
+                    <p>Tüm cihazlarda optimize edilmiş görünüm</p>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h3><i class="fas fa-cogs"></i> Nasıl Çalışır?</h3>
+                <p>1. <strong>GitHub Actions</strong> her 5 dakikada bir çalışır</p>
+                <p>2. <strong>Local API'nizden (192.168.1.3:3000)</strong> veri çeker</p>
+                <p>3. <strong>JSON formatında</strong> GitHub Pages'e kaydeder</p>
+                <p>4. <strong>Bu sayfa</strong> HTTPS üzerinden JSON'u okur ve tabloda gösterir</p>
+                <p>5. <strong>JavaScript</strong> her 30 saniyede bir verileri yeniler</p>
+                <p>6. <strong>Cache</strong> mekanizması ile çevrimdışı çalışabilir</p>
+            </div>
+            
+            <div class="warning-box">
+                <h3><i class="fas fa-exclamation-triangle"></i> Önemli Notlar</h3>
+                <p>• GitHub Actions workflow'unun etkin olduğundan emin olun</p>
+                <p>• Local API'nizin 192.168.1.3:3000 adresinde çalıştığından emin olun</p>
+                <p>• GitHub Pages ayarlarında "Enforce HTTPS" aktif olmalı</p>
+                <p>• JSON dosyaları public klasöründe olmalı</p>
+                <p>• Tarayıcı doğrudan local API'ye erişemez, sadece GitHub Pages üzerinden veri alır</p>
+            </div>
+            
+            <div class="test-links">
+                <h3 style="width: 100%; text-align: center; margin-bottom: 1rem;">Test Linkleri:</h3>
+                <a href="/about" class="test-link">/about</a>
+                <a href="/contact" class="test-link">/contact</a>
+                <a href="/404" class="test-link">/404 Test</a>
+                <a href="https://cagatay-a.github.io/TrueSignals/api-data.json" target="_blank" class="test-link">JSON Verileri</a>
+                <a href="https://github.com/cagatay-a/TrueSignals/actions" target="_blank" class="test-link">GitHub Actions</a>
+                <a href="https://github.com/cagatay-a/TrueSignals/settings/pages" target="_blank" class="test-link">Pages Ayarları</a>
+            </div>
+            
+            <div class="code-block">
+                <h3><i class="fas fa-file-code"></i> GitHub Actions Workflow</h3>
+                <pre><code>name: Fetch Data from Local API
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Her 5 dakikada bir
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  fetch-data:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Fetch API Data
+        run: |
+          curl -s "http://192.168.1.3:3000/api/emirler" > public/data.json
+          echo '{ "success": true, "lastFetch": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "source": "http://192.168.1.3:3000", "emirler": '$(cat public/data.json)' }' > public/api-data.json
+      
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add public/
+          git commit -m "Update API data" || echo "No changes"
+          git push</code></pre>
+                <p class="note">Bu workflow repository'nin .github/workflows dizininde olmalı.</p>
+            </div>
+            
+            <!-- Network Status -->
+            <div id="networkStatus" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-wifi-slash"></i> İnternet bağlantısı kesildi. Çevrimdışı modda çalışıyorsunuz.
+            </div>
+        </main>
+        
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TrueSignal Emir Takip</h4>
+                    <p>GitHub Pages + GitHub Actions + Local API</p>
+                    <p>Gerçek Zamanlı Veri Senkronizasyonu</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Sayfalar</h4>
+                    <ul>
+                        <li><a href="/">Ana Sayfa</a></li>
+                        <li><a href="/about">Hakkında</a></li>
+                        <li><a href="/contact">İletişim</a></li>
+                        <li><a href="/404">404 Test</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>GitHub</h4>
+                    <p>
+                        <a href="https://github.com/cagatay-a/TrueSignals" style="color: #cbd5e0;">
+                            <i class="fab fa-github"></i> cagatay-a/TrueSignals
+                        </a>
+                    </p>
+                    <p>
+                        <a href="https://github.com/cagatay-a/TrueSignals/actions" style="color: #cbd5e0;">
+                            <i class="fas fa-play-circle"></i> GitHub Actions
+                        </a>
+                    </p>
+                    <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 10px;">
+                        <i class="fas fa-code-branch"></i> JSON API: /api-data.json
+                    </p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2024 TrueSignal - GitHub Pages Emir Takip Sistemi</p>
+                <p style="font-size: 0.8rem; color: #a0aec0; margin-top: 5px;">
+                    <i class="fas fa-sync-alt"></i> Son Güncelleme: <span id="footerUpdateTime">-</span>
+                    | <i class="fas fa-wifi"></i> Durum: <span id="connectionStatus">Çevrimiçi</span>
+                    | <i class="fas fa-database"></i> Cache: <span id="cacheStatus">Aktif</span>
+                </p>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // Network status kontrolü
+        function updateNetworkStatus() {
+            const networkStatus = document.getElementById('networkStatus');
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            if (navigator.onLine) {
+                if (networkStatus) networkStatus.style.display = 'none';
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Çevrimiçi';
+                    connectionStatus.style.color = '#38a169';
+                }
+            } else {
+                if (networkStatus) networkStatus.style.display = 'block';
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Çevrimdışı';
+                    connectionStatus.style.color = '#e53e3e';
+                }
+            }
+        }
+        
+        // Footer güncelleme zamanı
+        function updateFooterTime() {
+            const now = new Date();
+            const footerTimeElement = document.getElementById('footerUpdateTime');
+            if (footerTimeElement) {
+                footerTimeElement.textContent = 
+                    now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+        
+        // Cache durumu güncelleme
+        function updateCacheStatus() {
+            const cacheStatusElement = document.getElementById('cacheStatus');
+            if (cacheStatusElement) {
+                try {
+                    const cacheTime = localStorage.getItem('emirler_cache_time');
+                    if (cacheTime) {
+                        const cacheDate = new Date(parseInt(cacheTime));
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - cacheDate) / (1000 * 60));
+                        
+                        if (diffMinutes < 30) {
+                            cacheStatusElement.textContent = `${diffMinutes} dk önce`;
+                            cacheStatusElement.style.color = '#38a169';
+                        } else {
+                            cacheStatusElement.textContent = 'Eski';
+                            cacheStatusElement.style.color = '#e53e3e';
+                        }
+                    } else {
+                        cacheStatusElement.textContent = 'Yok';
+                        cacheStatusElement.style.color = '#718096';
+                    }
+                } catch (e) {
+                    cacheStatusElement.textContent = 'Hata';
+                    cacheStatusElement.style.color = '#e53e3e';
+                }
+            }
+        }
+        
+        // Filtreleme fonksiyonu
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            const typeFilter = document.getElementById('typeFilter')?.value || '';
+            const symbolFilter = document.getElementById('symbolFilter')?.value.toLowerCase() || '';
+            const dateFilter = document.getElementById('dateFilter')?.value || '';
+            
+            const rows = document.querySelectorAll('#emirlerTable tbody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const status = row.cells[13]?.textContent || '';
+                const type = row.cells[3]?.textContent || '';
+                const symbol = row.cells[2]?.textContent?.toLowerCase() || '';
+                const date = row.cells[1]?.textContent || '';
+                
+                let show = true;
+                
+                if (statusFilter && !status.includes(statusFilter)) {
+                    show = false;
+                }
+                
+                if (typeFilter && type !== typeFilter) {
+                    show = false;
+                }
+                
+                if (symbolFilter && !symbol.includes(symbolFilter)) {
+                    show = false;
+                }
+                
+                if (dateFilter && !date.includes(dateFilter)) {
+                    show = false;
+                }
+                
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+            
+            // Filtre sonucunu göster
+            const tableTitle = document.querySelector('.table-title');
+            if (tableTitle && rows.length > 0) {
+                const originalText = tableTitle.textContent.replace(/\(\d+\)/, '');
+                tableTitle.textContent = `${originalText} (${visibleCount}/${rows.length})`;
+            }
+        }
+        
+        // Export data function
+        function exportData() {
+            const table = document.getElementById('emirlerTable');
+            if (!table) {
+                alert('Tabloya ulaşılamadı!');
+                return;
+            }
+            
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll('td, th');
+                
+                for (let j = 0; j < cols.length; j++) {
+                    let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, "").replace(/\s+/g, " ");
+                    row.push(`"${text}"`);
+                }
+                
+                csv.push(row.join(","));
+            }
+            
+            const csvContent = csv.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `emirler_${new Date().toISOString().split('T')[0]}_${new Date().getHours()}${new Date().getMinutes()}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Tarayıcınız CSV indirmeyi desteklemiyor!');
+            }
+        }
+        
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNetworkStatus();
+            updateFooterTime();
+            updateCacheStatus();
+            
+            // Her dakika footer zamanını güncelle
+            setInterval(updateFooterTime, 60000);
+            setInterval(updateCacheStatus, 30000);
+            
+            // Network durumunu dinle
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+            
+            console.log('TrueSignal Emir Takip Sistemi yüklendi');
+            
+            // Filtre event listener'ları
+            const statusFilter = document.getElementById('statusFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const symbolFilter = document.getElementById('symbolFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (typeFilter) typeFilter.addEventListener('change', applyFilters);
+            if (symbolFilter) symbolFilter.addEventListener('input', applyFilters);
+            if (dateFilter) dateFilter.addEventListener('change', applyFilters);
+            
+            // İlk filtrelemeyi uygula
+            setTimeout(applyFilters, 1000);
+        });
+        
+        // Print function
+        function printTable() {
+            window.print();
+        }
+        
+        // Clear filters
+        function clearFilters() {
+            const statusFilter = document.getElementById('statusFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const symbolFilter = document.getElementById('symbolFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            
+            if (statusFilter) statusFilter.value = '';
+            if (typeFilter) typeFilter.value = '';
+            if (symbolFilter) symbolFilter.value = '';
+            if (dateFilter) dateFilter.value = '';
+            
+            applyFilters();
+        }
+        
+        // Global fonksiyonlar
+        window.exportData = exportData;
+        window.printTable = printTable;
+        window.clearFilters = clearFilters;
+        window.applyFilters = applyFilters;
+    </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrueSignal - 19 Aralık 2025 Raporu</title>
     
     <!-- CSS Dosyaları -->
