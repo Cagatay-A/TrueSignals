@@ -4,19 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sayfa Bulunamadı - TrueSignal</title>
+    
+    <!-- CSS Dosyaları -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Inline CSS for critical styles -->
     <style>
-        .error-container {
+        /* Critical styles that need to work immediately */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #374151;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header styles */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.2rem;
+            position: relative;
+            z-index: 1;
+            margin-top: 0.5rem;
+        }
+        
+        /* Navigation styles */
+        nav {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 0;
+            margin: 0;
+        }
+        
+        nav ul li a {
+            text-decoration: none;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+        
+        nav ul li a:hover,
+        nav ul li a.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Main content */
+        main {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
             text-align: center;
-            padding: 20px;
         }
         
+        /* 404 specific styles */
         .error-code {
             font-size: 8rem;
             font-weight: bold;
@@ -24,12 +131,41 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 1rem;
+            line-height: 1;
         }
         
         .error-message {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
             color: #4a5568;
+        }
+        
+        .error-description {
+            color: #718096;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .redirect-info {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            max-width: 600px;
+            width: 100%;
+            border-left: 4px solid #e53e3e;
+        }
+        
+        .path-display {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-size: 0.9rem;
         }
         
         .spinner {
@@ -39,31 +175,12 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 30px auto;
+            margin: 20px auto;
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        
-        .redirect-info {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            max-width: 500px;
-            width: 100%;
-        }
-        
-        .path-display {
-            font-family: 'Courier New', monospace;
-            background: #2d3748;
-            color: #e2e8f0;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            word-break: break-all;
         }
         
         .quick-links {
@@ -72,6 +189,7 @@
             gap: 15px;
             justify-content: center;
             margin-top: 30px;
+            max-width: 600px;
         }
         
         .quick-link {
@@ -84,46 +202,209 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-weight: 500;
         }
         
         .quick-link:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .url-example {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f0fff4;
+            border-radius: 10px;
+            border-left: 4px solid #38a169;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .url-example code {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            display: block;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive fixes */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 1.5rem;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            nav ul {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            nav ul li a {
+                justify-content: center;
+            }
+            
+            main {
+                padding: 1rem;
+            }
+            
+            .error-code {
+                font-size: 5rem;
+            }
+            
+            .error-message {
+                font-size: 1.4rem;
+            }
+            
+            .quick-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .quick-link {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="error-container">
-        <div class="error-code">404</div>
-        <h1 class="error-message">Sayfa Bulunamadı</h1>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-signal"></i> TrueSignal Emir Takip</h1>
+            <p class="subtitle">404 - Sayfa Bulunamadı</p>
+        </header>
         
-        <div class="redirect-info">
-            <p><i class="fas fa-info-circle"></i> Doğru sayfaya yönlendiriliyorsunuz...</p>
-            <div class="spinner"></div>
-            <div id="pathInfo">
-                <p>Mevcut URL:</p>
-                <div class="path-display" id="currentPath"></div>
+        <nav>
+            <ul>
+                <li><a href="index.html"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+                <li><a href="about.html"><i class="fas fa-info-circle"></i> Hakkında</a></li>
+                <li><a href="contact.html"><i class="fas fa-envelope"></i> İletişim</a></li>
+                <li><a href="404.html" class="active"><i class="fas fa-exclamation-triangle"></i> 404 Test</a></li>
+                <li><a href="2025-12-19.html"><i class="fas fa-calendar-day"></i> 19 Aralık 2025</a></li>
+            </ul>
+        </nav>
+        
+        <main class="main-content">
+            <div class="error-code">404</div>
+            <h1 class="error-message">Sayfa Bulunamadı</h1>
+            
+            <p class="error-description">
+                Aradığınız sayfa mevcut değil veya taşınmış olabilir. 
+                Lütfen doğru sayfaya yönlendirilmek için bekleyin veya aşağıdaki linklerden birini seçin.
+            </p>
+            
+            <div class="redirect-info">
+                <p><i class="fas fa-info-circle"></i> <strong>Otomatik Yönlendirme Aktif</strong></p>
+                <p>Doğru sayfaya yönlendiriliyorsunuz...</p>
+                <div class="spinner"></div>
+                
+                <div id="pathInfo">
+                    <p><strong>Erişmeye Çalıştığınız URL:</strong></p>
+                    <div class="path-display" id="currentPath"></div>
+                </div>
             </div>
-        </div>
+            
+            <div class="quick-links">
+                <a href="index.html" class="quick-link">
+                    <i class="fas fa-home"></i> Ana Sayfa
+                </a>
+                <a href="about.html" class="quick-link">
+                    <i class="fas fa-info-circle"></i> Hakkında
+                </a>
+                <a href="contact.html" class="quick-link">
+                    <i class="fas fa-envelope"></i> İletişim
+                </a>
+                <a href="2025-12-19.html" class="quick-link">
+                    <i class="fas fa-calendar-day"></i> 19 Aralık 2025
+                </a>
+            </div>
+            
+            <div class="url-example">
+                <h4><i class="fas fa-lightbulb"></i> Doğru URL Kullanımı</h4>
+                <p>Gelecekte temiz URL'leri kullanın:</p>
+                <code>https://cagatay-a.github.io/TrueSignals/about</code>
+                <code>https://cagatay-a.github.io/TrueSignals/contact</code>
+                <code>https://cagatay-a.github.io/TrueSignals/2025-12-19</code>
+                <p class="mt-2 text-muted"><i class="fas fa-info-circle"></i> Bu URL'ler otomatik olarak ilgili .html dosyalarını yükler.</p>
+            </div>
+            
+            <div class="alert alert-warning mt-4" style="max-width: 600px; width: 100%;">
+                <h5><i class="fas fa-exclamation-triangle"></i> Hata Nedenleri</h5>
+                <ul class="text-start">
+                    <li>Yanlış yazılmış URL</li>
+                    <li>Sayfanın taşınmış veya silinmiş olması</li>
+                    <li>GitHub Pages'in henüz build edilmemiş olması</li>
+                    <li>Tarayıcı cache sorunları</li>
+                </ul>
+            </div>
+        </main>
         
-        <div class="quick-links">
-            <a href="/TrueSignal/" class="quick-link">
-                <i class="fas fa-home"></i> Ana Sayfa
-            </a>
-            <a href="/TrueSignal/about" class="quick-link">
-                <i class="fas fa-info-circle"></i> Hakkında
-            </a>
-            <a href="/TrueSignal/contact" class="quick-link">
-                <i class="fas fa-envelope"></i> İletişim
-            </a>
-        </div>
-        
-        <p style="margin-top: 30px; color: #718096; font-size: 0.9rem;">
-            <i class="fas fa-lightbulb"></i> İpucu: Gelecekte temiz URL'leri kullanın:<br>
-            <code>https://cagatay-a.github.io/TrueSignal/contact</code>
-        </p>
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TrueSignal Emir Takip</h4>
+                    <p>GitHub Pages + GitHub Actions + Local API</p>
+                    <p>Gerçek Zamanlı Veri Senkronizasyonu</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Sayfalar</h4>
+                    <ul>
+                        <li><a href="index.html">Ana Sayfa</a></li>
+                        <li><a href="about.html">Hakkında</a></li>
+                        <li><a href="contact.html">İletişim</a></li>
+                        <li><a href="404.html">404 Test</a></li>
+                        <li><a href="2025-12-19.html">19 Aralık 2025</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>GitHub</h4>
+                    <p>
+                        <a href="https://github.com/cagatay-a/TrueSignals" style="color: #cbd5e0;">
+                            <i class="fab fa-github"></i> cagatay-a/TrueSignals
+                        </a>
+                    </p>
+                    <p>
+                        <a href="https://github.com/cagatay-a/TrueSignals/actions" style="color: #cbd5e0;">
+                            <i class="fas fa-play-circle"></i> GitHub Actions
+                        </a>
+                    </p>
+                    <p style="font-size: 0.9rem; color: #a0aec0; margin-top: 10px;">
+                        <i class="fas fa-code-branch"></i> JSON API: /api-data.json
+                    </p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2024 TrueSignal - GitHub Pages Emir Takip Sistemi</p>
+                <p style="font-size: 0.8rem; color: #a0aec0; margin-top: 5px;">
+                    <i class="fas fa-sync-alt"></i> Son Güncelleme: <span id="footerUpdateTime">-</span>
+                    | <i class="fas fa-wifi"></i> Durum: <span id="connectionStatus">Çevrimiçi</span>
+                    | <i class="fas fa-database"></i> Cache: <span id="cacheStatus">Aktif</span>
+                </p>
+            </div>
+        </footer>
     </div>
-
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
         // URL temizleme ve yönlendirme fonksiyonu
         function handle404Redirect() {
@@ -137,7 +418,7 @@
             console.log('404 Sayfası - Orijinal Path:', currentPath);
             
             // GitHub Pages repository path'ini belirle
-            const repoName = '/TrueSignal/';
+            const repoName = '/TrueSignals/';
             let cleanPath = '';
             
             // Repository path'ini çıkar
@@ -168,7 +449,8 @@
                 '': 'index.html',
                 'contact': 'contact.html',
                 'about': 'about.html',
-                '404': '404.html'
+                '404': '404.html',
+                '2025-12-19': '2025-12-19.html'
             };
             
             // Hedef sayfayı belirle
@@ -191,25 +473,77 @@
                     return;
                 }
                 
-                // Yönlendirme URL'sini oluştur
-                const redirectURL = repoName + targetPage;
-                console.log('Yönlendiriliyor:', redirectURL);
+                // Eğer zaten 404 sayfasındaysak ve 404.html'e erişmeye çalışıyorsak
+                if (targetPage === '404.html' && cleanPath === '404') {
+                    console.log('Zaten 404 sayfasındayız');
+                    return;
+                }
                 
-                // Tarayıcı geçmişini temizle
-                window.history.replaceState({}, '', redirectURL);
+                // Yönlendirme URL'sini oluştur
+                const redirectURL = targetPage;
+                console.log('Yönlendiriliyor:', redirectURL);
                 
                 // Sayfayı yükle
                 window.location.href = redirectURL;
             }, 3000);
         }
         
-        // Sayfa yüklendiğinde çalıştır
-        document.addEventListener('DOMContentLoaded', handle404Redirect);
+        // Footer güncelleme zamanı
+        function updateFooterTime() {
+            const now = new Date();
+            const footerTimeElement = document.getElementById('footerUpdateTime');
+            if (footerTimeElement) {
+                footerTimeElement.textContent = 
+                    now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+        
+        // Network durumu
+        function updateNetworkStatus() {
+            const connectionStatus = document.getElementById('connectionStatus');
+            if (connectionStatus) {
+                if (navigator.onLine) {
+                    connectionStatus.textContent = 'Çevrimiçi';
+                    connectionStatus.style.color = '#38a169';
+                } else {
+                    connectionStatus.textContent = 'Çevrimdışı';
+                    connectionStatus.style.color = '#e53e3e';
+                }
+            }
+        }
+        
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            // 404 yönlendirme
+            handle404Redirect();
+            
+            // Footer zamanını güncelle
+            updateFooterTime();
+            
+            // Network durumu
+            updateNetworkStatus();
+            
+            // Her dakika footer zamanını güncelle
+            setInterval(updateFooterTime, 60000);
+            
+            // Network durumunu dinle
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+            
+            // Cache durumu
+            const cacheStatusElement = document.getElementById('cacheStatus');
+            if (cacheStatusElement) {
+                cacheStatusElement.textContent = 'Aktif';
+                cacheStatusElement.style.color = '#38a169';
+            }
+            
+            console.log('TrueSignal - 404 Sayfası yüklendi');
+        });
         
         // Eğer hala bu sayfadaysak 10 saniye sonra ana sayfaya yönlendir
         setTimeout(() => {
             if (window.location.pathname.includes('404')) {
-                window.location.href = '/TrueSignal/';
+                window.location.href = 'index.html';
             }
         }, 10000);
     </script>
