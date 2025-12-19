@@ -49,19 +49,25 @@ jobs:
           if [ "$API_RESPONSE" != "CURL_ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
             echo "✅ API'den veri alındı (${#API_RESPONSE} karakter)"
             
-            # BASİT JSON kontrolü - TEK SATIR
-            if echo "$API_RESPONSE" | python3 -c "import json,sys; json.loads(sys.stdin.read())" 2>/dev/null; then
-              echo "✅ JSON formatı geçerli"
+            # DEĞİŞTİR (basit versiyon):
+            if [ ! -z "$API_RESPONSE" ]; then
+              echo "✅ API'den veri alındı (${#API_RESPONSE} karakter)"
               
-              # Veriyi kaydet
-              echo "$API_RESPONSE" > data.json
+              # Basit JSON kontrolü (sadece ilk karaktere bak)
+              if [[ "$API_RESPONSE" == \{* || "$API_RESPONSE" == \[* ]]; then
+                echo "✅ JSON formatı geçerli"
+                
+                # Veriyi kaydet
+                echo "$API_RESPONSE" > data.json
+                
+                # Metadata ekle (python OLMADAN)
+                TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                cat > api-data.json << EOF
+            { "success": true, "lastFetch": "$TIMESTAMP", "source": "http://192.168.1.3:3000", "emirler": $API_RESPONSE }
+            EOF
               
-              # Metadata ekle
-              TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$(echo "$API_RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d))")"' }' > api-data.json
-              
-              # İstatistikleri hesapla - TEK SATIR
-              COUNT=$(echo "$API_RESPONSE" | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(len(d) if isinstance(d, list) else (len(d.get('emirler', [])) if isinstance(d, dict) and 'emirler' in d else 1))")
+                # İstatistikleri hesapla
+              COUNT=$(echo "$API_RESPONSE" | grep -o '"Id"' | wc -l)
               echo "📊 $COUNT emir bulundu"
               
               echo "success=true" >> $GITHUB_OUTPUT
@@ -69,7 +75,7 @@ jobs:
               break
             else
               echo "❌ Geçersiz JSON formatı"
-            fi
+            fi  
           else
             echo "❌ API'ye bağlanılamadı (Deneme $i)"
             sleep 2
