@@ -102,8 +102,6 @@ jobs:
         echo "..."
     
     - name: Commit and Push changes
-# ESKİ: if: steps.fetch-data.outputs.success == 'true'  # <-- BU SATIRI SİL!
-  # YENİ: HER ZAMAN ÇALIŞSIN
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run: |
@@ -116,8 +114,8 @@ jobs:
     # Değişiklikleri ekle
     git add public/
     
-    # HER ZAMAN COMMIT YAP (allow-empty ile)
-    git commit -m "📊 Veri Güncellendi (${{ steps.fetch-data.outputs.count }} emir) - $(date +'%H:%M:%S')" --allow-empty
+    # HER ZAMAN COMMIT YAP
+    git commit -m "📊 API Verileri Güncellendi (${{ steps.fetch-data.outputs.count || 0 }} emir) - $(date +'%H:%M:%S')" --allow-empty
     
     echo "🚀 Değişiklikler gönderiliyor..."
     git push

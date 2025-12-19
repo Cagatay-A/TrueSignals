@@ -126,16 +126,23 @@ function processData(data) {
     // Fix Turkish encoding first
     const fixedData = fixTurkishEncoding(data);
     
-    // YENİ: İÇ İÇE EMİRLER FORMATI
-    if (fixedData.emirler && fixedData.emirler.emirler && Array.isArray(fixedData.emirler.emirler)) {
-        // Format: {emirler: {emirler: [...], success: true}}
+    // 1. EN BASİT FORMAT: Direkt array (API direkt [] döndürürse)
+    if (Array.isArray(fixedData)) {
+        processedData = fixedData;
+        console.log(`[FORMAT 0] Direkt Array: ${processedData.length} emir`);
+        
+    } 
+    // 2. İÇ İÇE EMİRLER FORMATI: {emirler: {emirler: [...], success: true}}
+    else if (fixedData.emirler && fixedData.emirler.emirler && Array.isArray(fixedData.emirler.emirler)) {
         processedData = fixedData.emirler.emirler || [];
         timestamp = fixedData.lastFetch || timestamp;
         source = fixedData.source || source;
         success = fixedData.success && fixedData.emirler.success;
         console.log(`[NEW FORMAT] ${processedData.length} emir, Success: ${success}`);
         
-    } else if (fixedData.success !== undefined && fixedData.emirler) {
+    } 
+    // 3. STANDART FORMAT: {success, lastFetch, source, emirler}
+    else if (fixedData.success !== undefined && fixedData.emirler !== undefined) {
         // Format: {success, lastFetch, source, emirler} (emirler direkt array)
         if (Array.isArray(fixedData.emirler)) {
             processedData = fixedData.emirler;
@@ -148,19 +155,34 @@ function processData(data) {
         success = fixedData.success;
         console.log(`[FORMAT 1] ${processedData.length} emir, Success: ${success}`);
         
-    } else if (Array.isArray(fixedData.emirler)) {
-        // Format: {emirler: [...]}
+    } 
+    // 4. SADECE EMİRLER: {emirler: [...]}
+    else if (Array.isArray(fixedData.emirler)) {
         processedData = fixedData.emirler;
         console.log(`[FORMAT 2] ${processedData.length} emir`);
         
-    } else if (Array.isArray(fixedData)) {
-        // Format: Direct array
-        processedData = fixedData;
-        console.log(`[FORMAT 3] ${processedData.length} emir`);
+    } 
+    // 5. GİTHUB ACTIONS BAŞLANGIÇ FORMATI: {success: false, message: "GitHub Actions henüz çalışmadı..."}
+    else if (fixedData.success === false && fixedData.message) {
+        // Bu durumda, henüz ilk veri çekilmemiş demektir
+        console.log('[INITIAL STATE] GitHub Actions henüz veri çekmedi:', fixedData.message);
+        processedData = [];
+        timestamp = fixedData.lastFetch || timestamp;
+        source = fixedData.source || source;
+        success = fixedData.success;
+        console.log(`[INITIAL] ${processedData.length} emir, Success: ${success}`);
         
-    } else {
+    } 
+    // 6. BİLİNMEYEN FORMAT
+    else {
         console.warn('[FORMAT WARNING] Bilinmeyen format:', fixedData);
-        showError('Veri formatı tanınamadı');
+        console.log('[DEBUG] Data type:', typeof fixedData);
+        console.log('[DEBUG] Keys:', Object.keys(fixedData));
+        
+        // Boş dizi döndür ama hata göster
+        processedData = [];
+        success = false;
+        showError('Veri formatı tanınamadı: ' + JSON.stringify(fixedData).substring(0, 100));
         return;
     }
     
@@ -185,6 +207,9 @@ function processData(data) {
         
         // Filtreleri uygula
         setTimeout(applyFilters, 500);
+    } else if (success === false) {
+        // API başarısız oldu ama boş dizi döndü
+        showNotification('API geçici olarak kapalı veya emir bulunmuyor', 'warning');
     }
 }
 
