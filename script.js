@@ -93,24 +93,17 @@ async function loadDataFromGitHub() {
         // Cache busting için timestamp
         const cacheBuster = '?t=' + Date.now();
         
-        // 1. ÖNCE GitHub Pages URL'sini dene
-        console.log('[FETCH 1] Trying GitHub Pages:', GITHUB_PAGES_URL + cacheBuster);
-        let response = await fetch(GITHUB_PAGES_URL + cacheBuster, {
+        console.log('[FETCH] Trying Raw GitHub URL for fresh data:', RAW_GITHUB_URL + cacheBuster);
+        
+        // SADECE RAW GITHUB URL'sini kullan (cache sorunu için)
+        const response = await fetch(RAW_GITHUB_URL + cacheBuster, {
             headers: { 
                 'Accept': 'application/json',
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
             },
-            cache: 'no-cache'
+            cache: 'no-store'
         });
-        
-        // 2. Eğer GitHub Pages'ten alamazsan, Raw GitHub URL'sini dene
-        if (!response.ok) {
-            console.log('[FETCH 2] GitHub Pages failed, trying Raw GitHub:', RAW_GITHUB_URL + cacheBuster);
-            response = await fetch(RAW_GITHUB_URL + cacheBuster, {
-                headers: { 'Accept': 'application/json' },
-                cache: 'no-cache'
-            });
-        }
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -118,28 +111,42 @@ async function loadDataFromGitHub() {
         
         const responseText = await response.text();
         console.log('[FETCH SUCCESS] Response length:', responseText.length);
-        console.log('[FETCH SUCCESS] First 300 chars:', responseText.substring(0, 300));
+        console.log('[FETCH SUCCESS] First 500 chars:', responseText.substring(0, 500));
         
-        const data = JSON.parse(responseText);
-        console.log('[FETCH SUCCESS] Parsed data structure:', Object.keys(data));
+        // JSON parse öncesi temizleme
+        let cleanedText = responseText.trim();
+        if (cleanedText.startsWith('"') && cleanedText.endsWith('"')) {
+            cleanedText = cleanedText.substring(1, cleanedText.length - 1);
+            cleanedText = cleanedText.replace(/\\"/g, '"');
+        }
+        
+        const data = JSON.parse(cleanedText);
+        console.log('[FETCH SUCCESS] Parsed data structure:', {
+            success: data.success,
+            hasEmirler: !!data.emirler,
+            emirlerType: typeof data.emirler,
+            keys: Object.keys(data)
+        });
         
         processData(data);
         
     } catch (error) {
         console.error('[FETCH ERROR]', error);
         
-        // 3. Son çare: local relative path (development için)
+        // Fallback: GitHub Pages URL
         try {
-            console.log('[FETCH 3] Trying local path as fallback');
-            const localResponse = await fetch('./api-data.json?t=' + Date.now());
-            if (localResponse.ok) {
-                const localData = await localResponse.json();
-                console.log('[FETCH 3] Local data loaded');
-                processData(localData);
+            console.log('[FETCH FALLBACK] Trying GitHub Pages as fallback');
+            const fallbackResponse = await fetch(GITHUB_PAGES_URL + '?t=' + Date.now(), {
+                cache: 'no-store'
+            });
+            if (fallbackResponse.ok) {
+                const fallbackData = await fallbackResponse.json();
+                console.log('[FETCH FALLBACK] GitHub Pages data loaded');
+                processData(fallbackData);
                 return;
             }
-        } catch (localError) {
-            console.error('[FETCH 3 ERROR]', localError);
+        } catch (fallbackError) {
+            console.error('[FETCH FALLBACK ERROR]', fallbackError);
         }
         
         // Cache'den yükle
@@ -151,77 +158,84 @@ async function loadDataFromGitHub() {
     }
 }
 
-// GÜNCELLENMİŞ processData() - İÇ İÇE FORMATI DOĞRU İŞLEYEN
+// GÜNCELLENMİŞ processData() - HATASIZ VERSİYON
 function processData(data) {
+    console.log('[PROCESS] Starting data processing...');
+    console.log('[PROCESS] Raw data received:', {
+        success: data.success,
+        hasEmirler: !!data.emirler,
+        emirlerType: typeof data.emirler,
+        emirlerKeys: data.emirler ? Object.keys(data.emirler) : 'none'
+    });
+    
     let processedData = [];
     let timestamp = new Date().toISOString();
     let source = 'github';
     let success = true;
     
-    console.log('[PROCESS] Raw data keys:', Object.keys(data));
-    console.log('[PROCESS] Raw data type:', typeof data.emirler);
-    
-    // Fix Turkish encoding first
-    const fixedData = fixTurkishEncoding(data);
-    
-    // RAW GITHUB FORMATI: { "success": true, "lastFetch": "...", "source": "...", "emirler": { "success": true, "emirler": [...] } }
-    // GitHub Pages için bu düzeltilmeli
-    
-    // 1. İÇ İÇE EMİRLER FORMATI - EN YAYGIN SORUN
-    if (fixedData.emirler && 
-        typeof fixedData.emirler === 'object' && 
-        !Array.isArray(fixedData.emirler) &&
-        fixedData.emirler.emirler && 
-        Array.isArray(fixedData.emirler.emirler)) {
-        
-        // Format: {emirler: {emirler: [...], success: true}}
-        processedData = fixedData.emirler.emirler || [];
-        timestamp = fixedData.lastFetch || timestamp;
-        source = fixedData.source || source;
-        success = fixedData.success && fixedData.emirler.success;
-        console.log(`[FORMAT 1 - NESTED] ${processedData.length} emir, Success: ${success}`);
-        
+    // FIXED DATA PARSING LOGIC
+    if (data.success === true && data.emirler) {
+        // CASE 1: data.emirler is an object with emirler array inside
+        if (typeof data.emirler === 'object' && data.emirler.emirler && Array.isArray(data.emirler.emirler)) {
+            processedData = data.emirler.emirler;
+            timestamp = data.lastFetch || timestamp;
+            source = data.source || source;
+            success = data.emirler.success !== false;
+            console.log(`[PROCESS CASE 1] Double-nested structure: ${processedData.length} emir found`);
+            
+        } 
+        // CASE 2: data.emirler is directly an array
+        else if (Array.isArray(data.emirler)) {
+            processedData = data.emirler;
+            timestamp = data.lastFetch || timestamp;
+            source = data.source || source;
+            success = data.success;
+            console.log(`[PROCESS CASE 2] Direct array structure: ${processedData.length} emir found`);
+            
+        } 
+        // CASE 3: data.emirler is an object but no emirler array
+        else if (typeof data.emirler === 'object') {
+            console.log('[PROCESS CASE 3] emirler is object but no emirler array:', data.emirler);
+            // Try to convert object values to array
+            processedData = Object.values(data.emirler).filter(item => 
+                typeof item === 'object' && item !== null
+            );
+            timestamp = data.lastFetch || timestamp;
+            source = data.source || source;
+            success = data.success;
+            console.log(`[PROCESS CASE 3] Converted object to array: ${processedData.length} emir found`);
+        }
     } 
-    // 2. DÜZ FORMAT: {success, lastFetch, source, emirler: [...]}
-    else if (fixedData.success !== undefined && fixedData.emirler && Array.isArray(fixedData.emirler)) {
-        processedData = fixedData.emirler;
-        timestamp = fixedData.lastFetch || timestamp;
-        source = fixedData.source || source;
-        success = fixedData.success;
-        console.log(`[FORMAT 2 - FLAT] ${processedData.length} emir, Success: ${success}`);
-        
-    } 
-    // 3. DİREKT ARRAY: [...]
-    else if (Array.isArray(fixedData)) {
-        processedData = fixedData;
-        console.log(`[FORMAT 3 - DIRECT ARRAY] ${processedData.length} emir`);
-        
-    } 
-    // 4. BAŞLANGIÇ FORMATI
-    else if (fixedData.success === false && fixedData.message) {
-        console.log('[FORMAT 4 - INITIAL] GitHub Actions henüz çalışmadı');
+    // CASE 4: Initial template or error
+    else if (data.success === false) {
+        console.log('[PROCESS CASE 4] Initial template or error state:', data.message || 'No message');
         processedData = [];
         success = false;
-        
-    } 
-    // 5. HATA
-    else {
-        console.warn('[FORMAT 5 - UNKNOWN]', fixedData);
-        processedData = [];
-        success = false;
+        timestamp = data.lastFetch || timestamp;
+        source = data.source || source;
     }
     
-    // DEBUG: İlk emiri göster
+    // DEBUG: Show first emir if available
     if (processedData.length > 0) {
-        console.log('[PROCESS DEBUG] First emir:', processedData[0]);
-        console.log('[PROCESS DEBUG] Emir keys:', Object.keys(processedData[0]));
+        console.log('[PROCESS DEBUG] First emir object:', processedData[0]);
+        console.log('[PROCESS DEBUG] First emir keys:', Object.keys(processedData[0]));
+        console.log('[PROCESS DEBUG] First emir values:', {
+            Sembol: processedData[0].Sembol,
+            Tip: processedData[0].Tip,
+            Status: processedData[0].Status,
+            KarZarar: processedData[0].KarZarar
+        });
     }
     
     // Fix Turkish encoding in each emir
-    processedData = processedData.map(emir => fixTurkishEncodingInObject(emir));
+    if (processedData.length > 0) {
+        processedData = processedData.map(emir => fixTurkishEncodingInObject(emir));
+    }
     
     // Cache data
-    cacheData(processedData);
+    if (processedData.length > 0) {
+        cacheData(processedData);
+    }
     
     // Update UI
     emirListesi = processedData;
@@ -231,13 +245,13 @@ function processData(data) {
     updateLastUpdate(timestamp, source, success);
     updateSystemStatus();
     
-    console.log(`[PROCESS FINAL] ${processedData.length} emir işlendi`);
+    console.log(`[PROCESS FINAL] ${processedData.length} emir processed, Success: ${success}`);
     
+    // Show notification
     if (processedData.length > 0) {
         showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
-        setTimeout(applyFilters, 500);
     } else if (success === false) {
-        showNotification('API geçici olarak kapalı veya emir bulunmuyor', 'warning');
+        showNotification('GitHub Actions henüz çalışmadı veya emir bulunmuyor', 'warning');
     }
 }
 
@@ -302,6 +316,9 @@ function updateTable() {
                     <i class="fas fa-database fa-3x mb-3" style="color: #cbd5e0;"></i>
                     <h4>Henüz emir bulunmamaktadır</h4>
                     <p>GitHub Actions'in veri çekmesini bekleyin veya manuel yenileyin.</p>
+                    <button class="btn btn-primary mt-3" onclick="loadDataFromGitHub()">
+                        <i class="fas fa-sync-alt"></i> Yenile
+                    </button>
                 </td>
             </tr>
         `;
@@ -321,24 +338,20 @@ function updateTable() {
         const karZarar = parseFloat(emir.KarZarar) || 0;
         const karZararYuzde = parseFloat(emir.KarZararYuzde) || 0;
         const tarih = emir.FormatliEmirZamani || emir.EmirZamani || emir['Tarih/Saat'] || 'N/A';
-        const rsi = emir.RSI || '-';
-        const macd = emir.MACD || '-';
-        const ema = emir.EMA || '-';
-        const stoach = emir.STOACH || '-';
-        const listType = emir.ListType || '-';
+        const comment = emir.Comment || '-';
         
         // Durum badge'i
         let statusBadge = '';
-        if (durum.toLowerCase().includes('açık')) {
+        if (durum.toLowerCase().includes('açık') || durum.toLowerCase().includes('open')) {
             statusBadge = `<span class="status-badge status-open">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('kapalı')) {
+        } else if (durum.toLowerCase().includes('kapalı') || durum.toLowerCase().includes('closed')) {
             statusBadge = `<span class="status-badge status-closed">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('hedef')) {
+        } else if (durum.toLowerCase().includes('hedef') || durum.toLowerCase().includes('target')) {
             statusBadge = `<span class="status-badge status-target">${durum}</span>`;
-        } else if (durum.toLowerCase().includes('zarar') || durum.toLowerCase().includes('stop')) {
+        } else if (durum.toLowerCase().includes('zarar') || durum.toLowerCase().includes('stop') || durum.toLowerCase().includes('loss')) {
             statusBadge = `<span class="status-badge status-stop">${durum}</span>`;
         } else {
-            statusBadge = durum;
+            statusBadge = `<span class="status-badge">${durum}</span>`;
         }
         
         // Kar/Zarar renk sınıfı
@@ -360,22 +373,15 @@ function updateTable() {
                 <td>${formatNumber(stopLoss, 4)}</td>
                 <td>${formatNumber(takeProfit, 4)}</td>
                 <td>${formatNumber(kapanis, 4)}</td>
-                <td>${rsi}</td>
-                <td>${macd}</td>
-                <td>${ema}</td>
-                <td>${stoach}</td>
                 <td>${statusBadge}</td>
-                <td>${listType}</td>
+                <td>${comment}</td>
                 <td class="${karZararClass}">
                     ${karZararText}<br>
                     <small>${karZararYuzdeText}</small>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${index})">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${index})" title="Detaylar">
                         <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" onclick="showEmirChart(${index})">
-                        <i class="fas fa-chart-line"></i>
                     </button>
                 </td>
             </tr>
@@ -383,6 +389,7 @@ function updateTable() {
     });
     
     tbody.innerHTML = html;
+    console.log(`[TABLE] Updated with ${emirListesi.length} rows`);
 }
 
 // Tabloyu göster
@@ -454,12 +461,12 @@ function updateLastUpdate(timestamp, source, success) {
         
         let sourceText = source;
         if (source.includes('192.168.1.3')) sourceText = 'Local API';
-        if (source === 'fallback') sourceText = 'Fallback Veri';
+        if (source === 'github') sourceText = 'GitHub';
         
         element.innerHTML = `
             <i class="fas ${success ? 'fa-check-circle success' : 'fa-exclamation-triangle warning'}"></i>
             <span>Son güncelleme: ${timeStr} (${dateStr})</span>
-            <small>Kaynak: ${sourceText}</small>
+            <small class="text-muted">Kaynak: ${sourceText}</small>
         `;
     } catch (error) {
         element.innerHTML = `
@@ -485,10 +492,10 @@ function updateSystemStatus() {
         status = 'warning';
         message = 'Emir verisi bulunamadı';
         icon = 'fa-exclamation-triangle';
-    } else if (emirListesi.some(e => e.Sembol === 'API_UNAVAILABLE')) {
-        status = 'error';
-        message = 'Local API geçici olarak kapalı';
-        icon = 'fa-times-circle';
+    } else if (emirListesi.length > 0) {
+        status = 'success';
+        message = `${emirListesi.length} emir yüklendi`;
+        icon = 'fa-check-circle';
     } else if (hour < 9 || hour > 18) {
         status = 'info';
         message = 'Mesai saatleri dışında';
@@ -511,6 +518,7 @@ function cacheData(data) {
             count: data.length
         };
         localStorage.setItem('truesignal_cache', JSON.stringify(cache));
+        console.log(`[CACHE] ${data.length} emir cached`);
     } catch (error) {
         console.warn('[CACHE] Kaydedilemedi:', error);
     }
@@ -525,7 +533,7 @@ function loadFromCache() {
         const cacheAge = Date.now() - cache.timestamp;
         
         if (cacheAge < CACHE_EXPIRY && cache.data && cache.data.length > 0) {
-            console.log(`[CACHE] ${cache.data.length} emir cache'den yüklendi`);
+            console.log(`[CACHE] ${cache.data.length} emir cache'den yüklendi (${Math.round(cacheAge/1000)}s ago)`);
             
             emirListesi = cache.data;
             updateTable();
@@ -538,7 +546,7 @@ function loadFromCache() {
                 element.innerHTML = `
                     <i class="fas fa-database"></i>
                     <span>Cache'den: ${time.toLocaleTimeString('tr-TR')}</span>
-                    <small>(${Math.round(cacheAge / 1000)} saniye önce)</small>
+                    <small class="text-muted">(${Math.round(cacheAge / 1000)} saniye önce)</small>
                 `;
             }
             
@@ -613,6 +621,7 @@ function formatNumber(value, decimals = 2) {
 function formatDateTime(datetimeStr) {
     if (!datetimeStr) return '-';
     try {
+        // Try to parse as Date
         const date = new Date(datetimeStr);
         if (!isNaN(date.getTime())) {
             return date.toLocaleString('tr-TR', {
@@ -623,6 +632,7 @@ function formatDateTime(datetimeStr) {
                 minute: '2-digit'
             });
         }
+        // If not a valid date, return original
         return datetimeStr;
     } catch (error) {
         return datetimeStr;
@@ -640,13 +650,14 @@ ID: ${emir.Id || emir.ID || index + 1}
 Sembol: ${emir.Sembol || 'N/A'}
 Tip: ${emir.Tip || 'N/A'}
 Durum: ${emir.Status || emir.Durum || 'N/A'}
-Lot: ${emir.Lot || '0'}
-Giriş Fiyatı: ${emir.GirisFiyati || '0'}
-Kapanış Fiyatı: ${emir.KapanisFiyati || '0'}
+Lot: ${formatNumber(emir.Lot) || '0'}
+Giriş Fiyatı: ${formatNumber(emir.GirisFiyati, 4) || '0'}
+Kapanış Fiyatı: ${formatNumber(emir.KapanisFiyati, 4) || '0'}
 Stop Loss: ${emir.StopLoss || 'Yok'}
 Take Profit: ${emir.TakeProfit || 'Yok'}
-Kar/Zarar: ${emir.KarZarar || '0'} (${emir.KarZararYuzde || '0'}%)
-Tarih: ${formatDateTime(emir.FormatliEmirZamani || emir.EmirZamani || '')}
+Kar/Zarar: ${formatNumber(emir.KarZarar, 2) || '0'} (${formatNumber(emir.KarZararYuzde, 2) || '0'}%)
+Emir Zamanı: ${formatDateTime(emir.FormatliEmirZamani || emir.EmirZamani)}
+Kapanış Zamanı: ${formatDateTime(emir.FormatliKapanisZamani || emir.KapanisZamani)}
 Not: ${emir.Comment || 'Yok'}
 ──────────────
 GitHub Actions ile otomatik çekilmiştir.
@@ -655,14 +666,7 @@ GitHub Actions ile otomatik çekilmiştir.
     }
 };
 
-window.showEmirChart = function(index) {
-    if (index >= 0 && index < emirListesi.length) {
-        const emir = emirListesi[index];
-        alert(`Grafik özelliği geliştirme aşamasında!\n\n${emir.Sembol || 'Emir'} için grafik gösterilecek.`);
-    }
-};
-
-// Filtreleme fonksiyonu (index.html'deki ile uyumlu)
+// Filtreleme fonksiyonu
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter')?.value || '';
     const typeFilter = document.getElementById('typeFilter')?.value || '';
@@ -673,7 +677,7 @@ function applyFilters() {
     let visibleCount = 0;
     
     rows.forEach(row => {
-        const status = row.cells[13]?.textContent || '';
+        const status = row.cells[9]?.textContent || '';
         const type = row.cells[3]?.textContent || '';
         const symbol = row.cells[2]?.textContent?.toLowerCase() || '';
         const date = row.cells[1]?.textContent || '';
