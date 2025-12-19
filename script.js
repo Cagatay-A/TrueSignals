@@ -1,5 +1,6 @@
 // CONFIGURATION
-const API_URL = "./api-data.json";  // GitHub Pages'teki JSON dosyası
+const GITHUB_PAGES_URL = "https://cagatay-a.github.io/TrueSignals/api-data.json";
+const RAW_GITHUB_URL = "https://raw.githubusercontent.com/Cagatay-A/TrueSignals/main/public/api-data.json";
 const REFRESH_INTERVAL = 30000; // 30 seconds
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 dakika
 
@@ -10,7 +11,8 @@ let isInitialLoad = true;
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[INIT] TrueSignal Emir Takip Sistemi yüklendi');
-    console.log('[CONFIG] API URL:', API_URL);
+    console.log('[CONFIG] GitHub Pages URL:', GITHUB_PAGES_URL);
+    console.log('[CONFIG] Raw GitHub URL:', RAW_GITHUB_URL);
     
     // Load initial data
     const cacheLoaded = loadFromCache();
@@ -83,105 +85,136 @@ function setupEventListeners() {
     });
 }
 
-// script.js'de loadDataFromGitHub fonksiyonunu güncelleyin:
+// YENİ loadDataFromGitHub() - ÇALIŞAN VERSİYON
 async function loadDataFromGitHub() {
     try {
         showLoading(true);
         
-        // Önce relative path'den dene
-        let response = await fetch("./api-data.json?t=" + Date.now(), {
-            headers: { 'Accept': 'application/json' },
+        // Cache busting için timestamp
+        const cacheBuster = '?t=' + Date.now();
+        
+        // 1. ÖNCE GitHub Pages URL'sini dene
+        console.log('[FETCH 1] Trying GitHub Pages:', GITHUB_PAGES_URL + cacheBuster);
+        let response = await fetch(GITHUB_PAGES_URL + cacheBuster, {
+            headers: { 
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
             cache: 'no-cache'
         });
         
+        // 2. Eğer GitHub Pages'ten alamazsan, Raw GitHub URL'sini dene
         if (!response.ok) {
-            // Fallback: absolute GitHub Pages URL
-            response = await fetch("https://cagatay-a.github.io/TrueSignals/api-data.json?t=" + Date.now());
+            console.log('[FETCH 2] GitHub Pages failed, trying Raw GitHub:', RAW_GITHUB_URL + cacheBuster);
+            response = await fetch(RAW_GITHUB_URL + cacheBuster, {
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-cache'
+            });
         }
         
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log('[FETCH SUCCESS] Response length:', responseText.length);
+        console.log('[FETCH SUCCESS] First 300 chars:', responseText.substring(0, 300));
+        
+        const data = JSON.parse(responseText);
+        console.log('[FETCH SUCCESS] Parsed data structure:', Object.keys(data));
+        
         processData(data);
         
     } catch (error) {
-        console.error('[ERROR]', error);
+        console.error('[FETCH ERROR]', error);
+        
+        // 3. Son çare: local relative path (development için)
+        try {
+            console.log('[FETCH 3] Trying local path as fallback');
+            const localResponse = await fetch('./api-data.json?t=' + Date.now());
+            if (localResponse.ok) {
+                const localData = await localResponse.json();
+                console.log('[FETCH 3] Local data loaded');
+                processData(localData);
+                return;
+            }
+        } catch (localError) {
+            console.error('[FETCH 3 ERROR]', localError);
+        }
+        
         // Cache'den yükle
         if (!loadFromCache()) {
-            showError("Veriler yüklenemedi. Lütfen internet bağlantınızı kontrol edin.");
+            showError("Veriler yüklenemedi. Lütfen sayfayı yenileyin (Ctrl+F5).");
         }
     } finally {
         showLoading(false);
     }
 }
 
+// GÜNCELLENMİŞ processData() - İÇ İÇE FORMATI DOĞRU İŞLEYEN
 function processData(data) {
     let processedData = [];
     let timestamp = new Date().toISOString();
     let source = 'github';
     let success = true;
     
-    console.log('[PROCESS] Raw data:', data);
+    console.log('[PROCESS] Raw data keys:', Object.keys(data));
+    console.log('[PROCESS] Raw data type:', typeof data.emirler);
     
     // Fix Turkish encoding first
     const fixedData = fixTurkishEncoding(data);
     
-    // DEBUG: Tüm veriyi logla
-    console.log('[DEBUG] Fixed data structure:', 
-                'success:', fixedData.success, 
-                'has emirler:', !!fixedData.emirler,
-                'emirler type:', typeof fixedData.emirler);
+    // RAW GITHUB FORMATI: { "success": true, "lastFetch": "...", "source": "...", "emirler": { "success": true, "emirler": [...] } }
+    // GitHub Pages için bu düzeltilmeli
     
-    // 1. EN ÖNEMLİ: İÇ İÇE FORMAT - {emirler: {emirler: [...], success: true}}
+    // 1. İÇ İÇE EMİRLER FORMATI - EN YAYGIN SORUN
     if (fixedData.emirler && 
         typeof fixedData.emirler === 'object' && 
         !Array.isArray(fixedData.emirler) &&
         fixedData.emirler.emirler && 
         Array.isArray(fixedData.emirler.emirler)) {
         
+        // Format: {emirler: {emirler: [...], success: true}}
         processedData = fixedData.emirler.emirler || [];
         timestamp = fixedData.lastFetch || timestamp;
         source = fixedData.source || source;
         success = fixedData.success && fixedData.emirler.success;
-        console.log(`[NESTED FORMAT] ${processedData.length} emir, Success: ${success}`);
-        
-        // DEBUG: İlk emiri göster
-        if (processedData.length > 0) {
-            console.log('[DEBUG] First emir:', processedData[0]);
-        }
+        console.log(`[FORMAT 1 - NESTED] ${processedData.length} emir, Success: ${success}`);
         
     } 
-    // 2. STANDART FORMAT: {success, lastFetch, source, emirler} (emirler direkt array)
-    else if (fixedData.success !== undefined && fixedData.emirler) {
-        if (Array.isArray(fixedData.emirler)) {
-            processedData = fixedData.emirler;
-        } else if (fixedData.emirler && Array.isArray(fixedData.emirler.emirler)) {
-            processedData = fixedData.emirler.emirler || [];
-        }
+    // 2. DÜZ FORMAT: {success, lastFetch, source, emirler: [...]}
+    else if (fixedData.success !== undefined && fixedData.emirler && Array.isArray(fixedData.emirler)) {
+        processedData = fixedData.emirler;
         timestamp = fixedData.lastFetch || timestamp;
         source = fixedData.source || source;
         success = fixedData.success;
-        console.log(`[STANDARD FORMAT] ${processedData.length} emir, Success: ${success}`);
+        console.log(`[FORMAT 2 - FLAT] ${processedData.length} emir, Success: ${success}`);
         
     } 
-    // 3. BAŞLANGIÇ FORMATI: GitHub Actions henüz çalışmadı
-    else if (fixedData.success === false && fixedData.message) {
-        console.log('[INITIAL] GitHub Actions henüz çalışmadı');
-        processedData = [];
-        success = false;
-        
-    } 
-    // 4. DİREKT ARRAY
+    // 3. DİREKT ARRAY: [...]
     else if (Array.isArray(fixedData)) {
         processedData = fixedData;
-        console.log(`[DIRECT ARRAY] ${processedData.length} emir`);
+        console.log(`[FORMAT 3 - DIRECT ARRAY] ${processedData.length} emir`);
+        
+    } 
+    // 4. BAŞLANGIÇ FORMATI
+    else if (fixedData.success === false && fixedData.message) {
+        console.log('[FORMAT 4 - INITIAL] GitHub Actions henüz çalışmadı');
+        processedData = [];
+        success = false;
         
     } 
     // 5. HATA
     else {
-        console.warn('[UNKNOWN FORMAT]', fixedData);
+        console.warn('[FORMAT 5 - UNKNOWN]', fixedData);
         processedData = [];
         success = false;
+    }
+    
+    // DEBUG: İlk emiri göster
+    if (processedData.length > 0) {
+        console.log('[PROCESS DEBUG] First emir:', processedData[0]);
+        console.log('[PROCESS DEBUG] Emir keys:', Object.keys(processedData[0]));
     }
     
     // Fix Turkish encoding in each emir
@@ -198,11 +231,13 @@ function processData(data) {
     updateLastUpdate(timestamp, source, success);
     updateSystemStatus();
     
-    console.log(`[FINAL] ${processedData.length} emir processed`);
+    console.log(`[PROCESS FINAL] ${processedData.length} emir işlendi`);
     
     if (processedData.length > 0) {
         showNotification(`${processedData.length} emir başarıyla yüklendi`, 'success');
         setTimeout(applyFilters, 500);
+    } else if (success === false) {
+        showNotification('API geçici olarak kapalı veya emir bulunmuyor', 'warning');
     }
 }
 
