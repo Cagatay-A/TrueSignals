@@ -58,7 +58,7 @@ jobs:
               
               # Metadata ekle
               TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > public/api-data.json
+              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$(echo "$API_RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d))")"' }' > public/api-data.json
               
               # İstatistikleri hesapla - TEK SATIR
               COUNT=$(echo "$API_RESPONSE" | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(len(d) if isinstance(d, list) else (len(d.get('emirler', [])) if isinstance(d, dict) and 'emirler' in d else 1))")
