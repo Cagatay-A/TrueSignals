@@ -102,28 +102,27 @@ jobs:
         echo "..."
     
     - name: Commit and Push changes
-      if: steps.fetch-data.outputs.success == 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        echo "💾 Değişiklikler kaydediliyor..."
-        
-        # Git ayarları
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        # Değişiklikleri ekle
-        git add public/
-        
-        # Değişiklik varsa commit et
-        if git diff --cached --quiet; then
-          echo "🤷 Değişiklik yok, commit atlanıyor"
-        else
-          git commit -m "📊 API Verileri Güncellendi (${{ steps.fetch-data.outputs.count }} emir) - $(date +'%H:%M:%S')"
-          echo "🚀 Değişiklikler gönderiliyor..."
-          git push
-          echo "✅ Gönderim tamamlandı"
-        fi
+# ESKİ: if: steps.fetch-data.outputs.success == 'true'  # <-- BU SATIRI SİL!
+  # YENİ: HER ZAMAN ÇALIŞSIN
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  run: |
+    echo "💾 Değişiklikler kaydediliyor..."
+    
+    # Git ayarları
+    git config --local user.email "action@github.com"
+    git config --local user.name "GitHub Action"
+    
+    # Değişiklikleri ekle
+    git add public/
+    
+    # HER ZAMAN COMMIT YAP (allow-empty ile)
+    git commit -m "📊 Veri Güncellendi (${{ steps.fetch-data.outputs.count }} emir) - $(date +'%H:%M:%S')" --allow-empty
+    
+    echo "🚀 Değişiklikler gönderiliyor..."
+    git push
+    echo "✅ Gönderim tamamlandı"
+
     
     - name: Summary
       run: |
