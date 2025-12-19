@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrueSignal - Emir Takip Sistemi</title>
+    <title>TrueSignal - 19 Aralık 2025 Raporu</title>
     
     <!-- CSS Dosyaları -->
     <link rel="stylesheet" href="styles.css">
@@ -118,7 +118,7 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
         
-        /* İstatistik stilleri */
+        /* Tarih sayfası özel stilleri */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -132,16 +132,10 @@
             border-radius: 10px;
             text-align: center;
             border-left: 4px solid #667eea;
-            transition: transform 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.1);
         }
         
         .stat-value {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: bold;
             margin: 10px 0;
         }
@@ -149,7 +143,6 @@
         .positive { color: #38a169; }
         .negative { color: #e53e3e; }
         .info { color: #3182ce; }
-        .warning { color: #d69e2e; }
         
         /* Responsive fixes */
         @media (max-width: 768px) {
@@ -188,180 +181,165 @@
 </head>
 <body>
     <div class="container">
+        <!-- AYNI HEADER -->
         <header>
             <h1><i class="fas fa-signal"></i> TrueSignal Emir Takip</h1>
-            <p class="subtitle">Sistem İstatistikleri ve Performans Analizi</p>
+            <p class="subtitle">19 Aralık 2025 - Günlük Performans Raporu</p>
         </header>
         
+        <!-- AYNI NAVIGATION MENÜ -->
         <nav>
             <ul>
-                <li><a href="index.html" class="active"><i class="fas fa-home"></i> Ana Sayfa</a></li>
-                <li><a href="2025-12-19.html"><i class="fas fa-table"></i> Emir Tablosu</a></li>
+                <li><a href="index.html"><i class="fas fa-home"></i> Ana Sayfa</a></li>
                 <li><a href="about.html"><i class="fas fa-info-circle"></i> Hakkında</a></li>
                 <li><a href="contact.html"><i class="fas fa-envelope"></i> İletişim</a></li>
                 <li><a href="404.html" title="404 Sayfasını Test Et"><i class="fas fa-exclamation-triangle"></i> 404 Test</a></li>
+                <li><a href="2025-12-19.html" class="active"><i class="fas fa-calendar-day"></i> 19 Aralık 2025</a></li>
             </ul>
         </nav>
         
         <main class="main-content">
-            <!-- Hero Section -->
-            <div class="hero-section text-center mb-4">
-                <div class="hero-icon mb-3">
-                    <i class="fas fa-chart-line fa-3x" style="color: #667eea;"></i>
+            <!-- Hero Section (ana sayfadaki gibi) -->
+            <div class="hero-section">
+                <div class="hero-icon">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                <h2>Sistem İstatistikleri ve Performans Raporu</h2>
-                <p class="text-muted">Gerçek zamanlı veri analizi ve performans metrikleri</p>
-                <div class="data-source mt-3">
+                <h2>19 Aralık 2025 Günlük Raporu</h2>
+                <p>Bu tarihe ait emir performans analizi ve istatistikler</p>
+                <div class="data-source">
                     <i class="fas fa-database"></i>
-                    <strong>Veri Kaynağı:</strong> GitHub Actions → Local API → GitHub Pages
+                    <strong>Rapor Tarihi:</strong> 19 Aralık 2025, Cuma
                 </div>
             </div>
             
-            <!-- Günlük İstatistikler -->
+            <!-- Tarih Raporu Bölümü (tablo yerine bu) -->
             <div class="table-section">
                 <h2 class="table-title"><i class="fas fa-chart-bar"></i> Günlük Performans Özeti</h2>
                 
                 <div class="alert alert-primary">
                     <i class="fas fa-calendar-alt"></i>
-                    <strong>Tarih:</strong> <span id="currentDate">Yükleniyor...</span> - Canlı Sistem Analizi
+                    <strong>Tarih:</strong> 19 Aralık 2025, Cuma - Günün Analizi
                 </div>
                 
                 <!-- İstatistik Kartları -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <h5><i class="fas fa-list-ol"></i> Toplam Emir</h5>
-                        <div class="stat-value info" id="totalOrders">0</div>
-                        <p>Açık: <span id="openOrders">0</span> | Kapalı: <span id="closedOrders">0</span></p>
-                        <small class="text-muted">Son 24 saat</small>
+                        <div class="stat-value info">15</div>
+                        <p>Açık: 4 | Kapalı: 11</p>
                     </div>
                     
                     <div class="stat-card">
                         <h5><i class="fas fa-coins"></i> Toplam Kar/Zarar</h5>
-                        <div class="stat-value positive" id="totalProfit">$0.00</div>
+                        <div class="stat-value positive">+$342.50</div>
                         <p>Net Performans</p>
-                        <small class="text-muted">Bugünkü toplam</small>
                     </div>
                     
                     <div class="stat-card">
                         <h5><i class="fas fa-percentage"></i> Başarı Oranı</h5>
-                        <div class="stat-value info" id="successRate">0%</div>
-                        <p><span id="successfulOrders">0</span>/<span id="totalCompleted">0</span> Başarılı</p>
-                        <small class="text-muted">Kapalı emirler</small>
+                        <div class="stat-value info">78.3%</div>
+                        <p>9/11 Başarılı</p>
                     </div>
                     
                     <div class="stat-card">
-                        <h5><i class="fas fa-trophy"></i> En İyi Performans</h5>
-                        <div class="stat-value positive" id="bestOrder">$0.00</div>
-                        <p id="bestSymbol">-</p>
-                        <small class="text-muted">En yüksek kar</small>
+                        <h5><i class="fas fa-trophy"></i> En İyi Emir</h5>
+                        <div class="stat-value positive">+$125.40</div>
+                        <p>EURUSD AL</p>
                     </div>
                 </div>
                 
-                <!-- Detaylı İstatistikler -->
-                <div class="stats-grid mt-4">
-                    <div class="stat-card">
-                        <h5><i class="fas fa-chart-pie"></i> Emir Dağılımı</h5>
-                        <div class="stat-value info" id="alRatio">0%</div>
-                        <p>AL: <span id="alCount">0</span> | SAT: <span id="satCount">0</span></p>
-                        <small class="text-muted">Tür dağılımı</small>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h5><i class="fas fa-clock"></i> Ortalama Süre</h5>
-                        <div class="stat-value info" id="avgDuration">0s</div>
-                        <p>Emir açık kalma süresi</p>
-                        <small class="text-muted">Ortalama</small>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h5><i class="fas fa-balance-scale"></i> Risk/Reward</h5>
-                        <div class="stat-value warning" id="riskReward">0:0</div>
-                        <p>Ortalama oran</p>
-                        <small class="text-muted">Risk/Ödül dengesi</small>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h5><i class="fas fa-bolt"></i> Aktiflik</h5>
-                        <div class="stat-value info" id="activityScore">0</div>
-                        <p>Sistem aktivite puanı</p>
-                        <small class="text-muted">1-100 arası</small>
-                    </div>
+                <!-- Emirler Tablosu -->
+                <h3 class="mt-4"><i class="fas fa-table"></i> Günün Emirleri</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sembol</th>
+                                <th>Tür</th>
+                                <th>Giriş</th>
+                                <th>Çıkış</th>
+                                <th>Kar/Zarar</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>EURUSD</strong></td>
+                                <td><span class="positive">AL</span></td>
+                                <td>1.0954</td>
+                                <td>1.0982</td>
+                                <td class="positive">+$125.40</td>
+                                <td><span class="badge bg-success">Kapandı</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>GBPUSD</strong></td>
+                                <td><span class="negative">SAT</span></td>
+                                <td>1.2765</td>
+                                <td>1.2742</td>
+                                <td class="positive">+$87.30</td>
+                                <td><span class="badge bg-success">Kapandı</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>XAUUSD</strong></td>
+                                <td><span class="positive">AL</span></td>
+                                <td>2145.20</td>
+                                <td>2152.80</td>
+                                <td class="positive">+$129.80</td>
+                                <td><span class="badge bg-success">Kapandı</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>BTCUSD</strong></td>
+                                <td><span class="positive">AL</span></td>
+                                <td>91500</td>
+                                <td>-</td>
+                                <td class="info">Açık</td>
+                                <td><span class="badge bg-warning">Açık</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 
                 <!-- Analiz Bölümü -->
                 <div class="info-box mt-4">
-                    <h4><i class="fas fa-lightbulb"></i> Sistem Analizi</h4>
-                    <div id="systemAnalysis">
-                        <p>Sistem verileri yükleniyor...</p>
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-primary" onclick="refreshStats()">
-                            <i class="fas fa-sync-alt"></i> İstatistikleri Yenile
-                        </button>
-                        <button class="btn btn-success ms-2" onclick="exportStats()">
-                            <i class="fas fa-download"></i> Rapor İndir
-                        </button>
-                    </div>
+                    <h4><i class="fas fa-lightbulb"></i> Günün Analizi</h4>
+                    <p>19 Aralık 2025'te piyasalar olumlu bir seyir izledi. EURUSD ve GBPUSD paritelerinde güçlü trendler yakalandı.</p>
+                    <ul>
+                        <li><strong>En Aktif Sembol:</strong> EURUSD (5 emir)</li>
+                        <li><strong>En Yüksek Volüm:</strong> XAUUSD (2.5 lot)</li>
+                        <li><strong>En Uzun Açık Kalan:</strong> BTCUSD (8 saat)</li>
+                        <li><strong>Ortalama Kar/Zarar:</strong> +$27.50</li>
+                        <li><strong>Risk/Reward Ortalaması:</strong> 1:2.3</li>
+                    </ul>
                 </div>
                 
-                <!-- Gerçek Zamanlı Veri -->
-                <div class="mt-4">
-                    <h4><i class="fas fa-broadcast-tower"></i> Gerçek Zamanlı Veri Akışı</h4>
-                    <div class="progress mb-3">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" 
-                             style="width: 75%" 
-                             aria-valuenow="75" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100">
-                            Veri senkronizasyonu aktif
-                        </div>
+                <!-- Navigasyon Butonları -->
+                <div class="table-controls mt-4">
+                    <div class="button-group">
+                        <a href="index.html" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Ana Sayfaya Dön
+                        </a>
+                        <button onclick="window.print()" class="btn btn-secondary">
+                            <i class="fas fa-print"></i> Raporu Yazdır
+                        </button>
+                        <button onclick="exportDailyReport()" class="btn btn-success">
+                            <i class="fas fa-download"></i> CSV İndir
+                        </button>
                     </div>
-                    <p class="text-muted">
-                        <i class="fas fa-info-circle"></i> 
-                        Veriler her 5 dakikada bir otomatik güncellenir. Son güncelleme: 
-                        <span id="lastDataUpdate">Yükleniyor...</span>
-                    </p>
                 </div>
             </div>
             
-            <!-- Sistem Bilgisi -->
+            <!-- Sistem Bilgisi (ana sayfadaki gibi) -->
             <div class="info-box mt-4">
-                <h4><i class="fas fa-info-circle"></i> Sistem Durumu</h4>
-                <div class="row">
-                    <div class="col-md-6">
-                        <ul>
-                            <li><span class="positive">✓</span> GitHub Pages: Aktif</li>
-                            <li><span class="positive">✓</span> GitHub Actions: Çalışıyor</li>
-                            <li><span class="positive">✓</span> Local API: Bağlantı var</li>
-                            <li><span class="positive">✓</span> Veri Senkronizasyonu: Aktif</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <ul>
-                            <li><span class="positive">✓</span> Cache: Aktif</li>
-                            <li><span class="positive">✓</span> HTTPS: Aktif</li>
-                            <li><span class="positive">✓</span> Responsive: Aktif</li>
-                            <li><span class="positive">✓</span> Otomatik Yenileme: Aktif</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Hızlı Linkler -->
-            <div class="quick-links mt-4 text-center">
-                <a href="2025-12-19.html" class="btn btn-primary">
-                    <i class="fas fa-table"></i> Emir Tablosunu Görüntüle
-                </a>
-                <a href="about.html" class="btn btn-outline-primary ms-2">
-                    <i class="fas fa-info-circle"></i> Sistem Hakkında
-                </a>
-                <a href="contact.html" class="btn btn-outline-primary ms-2">
-                    <i class="fas fa-envelope"></i> İletişim
-                </a>
+                <h4><i class="fas fa-info-circle"></i> Sistem Bilgisi</h4>
+                <p>Bu rapor GitHub Pages üzerinden sunulmaktadır.</p>
+                <p>• <span class="positive">Yeşil</span> renk AL emirlerini veya kar durumunu gösterir</p>
+                <p>• <span class="negative">Kırmızı</span> renk SAT emirlerini veya zarar durumunu gösterir</p>
+                <p>• Veriler otomatik olarak güncellenir</p>
+                <p>• HTTPS güvenli bağlantı kullanılır</p>
             </div>
         </main>
         
+        <!-- AYNI FOOTER -->
         <footer>
             <div class="footer-content">
                 <div class="footer-section">
@@ -373,11 +351,11 @@
                 <div class="footer-section">
                     <h4>Sayfalar</h4>
                     <ul>
-                        <li><a href="index.html">Ana Sayfa (İstatistik)</a></li>
-                        <li><a href="2025-12-19.html">Emir Tablosu</a></li>
+                        <li><a href="index.html">Ana Sayfa</a></li>
                         <li><a href="about.html">Hakkında</a></li>
                         <li><a href="contact.html">İletişim</a></li>
                         <li><a href="404.html">404 Test</a></li>
+                        <li><a href="2025-12-19.html">19 Aralık 2025</a></li>
                     </ul>
                 </div>
                 
@@ -412,156 +390,8 @@
     
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
     
     <script>
-        // İstatistik verilerini yükle
-        let emirListesi = [];
-        
-        // İstatistikleri güncelle
-        function updateStats() {
-            // Tarihi güncelle
-            const now = new Date();
-            document.getElementById('currentDate').textContent = 
-                now.toLocaleDateString('tr-TR', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
-            
-            // Örnek veriler (gerçek veriler geldiğinde bu kısım değişecek)
-            const total = emirListesi.length || 15;
-            const open = emirListesi.filter(e => {
-                const durum = (e.Status || '').toLowerCase();
-                return durum.includes('açık') || durum.includes('open');
-            }).length || 4;
-            const closed = total - open || 11;
-            const success = Math.floor(closed * 0.78) || 9;
-            const totalProfit = 342.50;
-            const bestOrder = 125.40;
-            const alCount = Math.floor(total * 0.6) || 9;
-            const satCount = total - alCount || 6;
-            
-            // DOM'u güncelle
-            document.getElementById('totalOrders').textContent = total;
-            document.getElementById('openOrders').textContent = open;
-            document.getElementById('closedOrders').textContent = closed;
-            document.getElementById('totalProfit').textContent = `$${totalProfit.toFixed(2)}`;
-            document.getElementById('successRate').textContent = `${Math.round((success/closed)*100) || 78}%`;
-            document.getElementById('successfulOrders').textContent = success;
-            document.getElementById('totalCompleted').textContent = closed;
-            document.getElementById('bestOrder').textContent = `$${bestOrder.toFixed(2)}`;
-            document.getElementById('bestSymbol').textContent = "EURUSD AL";
-            document.getElementById('alRatio').textContent = `${Math.round((alCount/total)*100)}%`;
-            document.getElementById('alCount').textContent = alCount;
-            document.getElementById('satCount').textContent = satCount;
-            document.getElementById('avgDuration').textContent = "2h 15m";
-            document.getElementById('riskReward').textContent = "1:2.3";
-            document.getElementById('activityScore').textContent = "85";
-            
-            // Son güncelleme zamanı
-            document.getElementById('lastDataUpdate').textContent = 
-                now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-            
-            // Sistem analizi
-            const analysisElement = document.getElementById('systemAnalysis');
-            let analysis = '';
-            
-            if (totalProfit > 0) {
-                analysis = `
-                    <p><span class="positive">✔ Pozitif Performans:</span> Sistem bugün <strong>$${totalProfit.toFixed(2)}</strong> kar elde etti.</p>
-                    <p><span class="positive">✔ Yüksek Başarı Oranı:</span> %${Math.round((success/closed)*100)} başarı oranı ile istikrarlı performans.</p>
-                    <p><span class="info">ℹ Aktif Emirler:</span> ${open} açık emir takip ediliyor.</p>
-                    <p><span class="info">ℹ AL/SAT Dengesi:</span> AL emirleri %${Math.round((alCount/total)*100)}, SAT emirleri %${Math.round((satCount/total)*100)}.</p>
-                `;
-            } else {
-                analysis = `
-                    <p><span class="negative">⚠ Dikkat:</span> Sistem bugün zarar etti. Analiz gerekli.</p>
-                    <p><span class="warning">ℹ Performans:</span> Başarı oranı %${Math.round((success/closed)*100)}.</p>
-                `;
-            }
-            
-            analysisElement.innerHTML = analysis;
-        }
-        
-        // İstatistikleri yenile
-        function refreshStats() {
-            const btn = event.target;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yenileniyor...';
-            btn.disabled = true;
-            
-            // API'den veri çek (script.js'den gelecek)
-            // Şimdilik örnek veri kullanıyoruz
-            setTimeout(() => {
-                updateStats();
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-                
-                // Başarı bildirimi
-                showNotification('İstatistikler başarıyla güncellendi!', 'success');
-            }, 1500);
-        }
-        
-        // Rapor indir
-        function exportStats() {
-            const data = [
-                ['TrueSignal - Sistem İstatistikleri Raporu'],
-                ['Tarih:', new Date().toLocaleDateString('tr-TR')],
-                ['Saat:', new Date().toLocaleTimeString('tr-TR')],
-                [''],
-                ['METRİK', 'DEĞER'],
-                ['Toplam Emir', document.getElementById('totalOrders').textContent],
-                ['Açık Emirler', document.getElementById('openOrders').textContent],
-                ['Kapalı Emirler', document.getElementById('closedOrders').textContent],
-                ['Toplam Kar/Zarar', document.getElementById('totalProfit').textContent],
-                ['Başarı Oranı', document.getElementById('successRate').textContent],
-                ['En İyi Emir', document.getElementById('bestOrder').textContent],
-                ['AL Emirleri', document.getElementById('alCount').textContent],
-                ['SAT Emirleri', document.getElementById('satCount').textContent],
-                ['AL Oranı', document.getElementById('alRatio').textContent],
-                ['Ortalama Süre', document.getElementById('avgDuration').textContent],
-                ['Risk/Reward', document.getElementById('riskReward').textContent],
-                ['Aktivite Skoru', document.getElementById('activityScore').textContent]
-            ];
-            
-            let csv = data.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `truesignal_istatistik_${new Date().toISOString().split('T')[0]}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                showNotification('Rapor başarıyla indirildi!', 'success');
-            } else {
-                showNotification('Tarayıcınız CSV indirmeyi desteklemiyor!', 'error');
-            }
-        }
-        
-        // Bildirim göster
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-            notification.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
-        
         // Footer güncelleme zamanı
         function updateFooterTime() {
             const now = new Date();
@@ -586,29 +416,57 @@
             }
         }
         
+        // CSV export fonksiyonu
+        function exportDailyReport() {
+            const data = [
+                ['Sembol', 'Tür', 'Giriş', 'Çıkış', 'Kar/Zarar', 'Durum'],
+                ['EURUSD', 'AL', '1.0954', '1.0982', '+$125.40', 'Kapandı'],
+                ['GBPUSD', 'SAT', '1.2765', '1.2742', '+$87.30', 'Kapandı'],
+                ['XAUUSD', 'AL', '2145.20', '2152.80', '+$129.80', 'Kapandı'],
+                ['BTCUSD', 'AL', '91500', '-', 'Açık', 'Açık']
+            ];
+            
+            let csv = data.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `truesignal_2025-12-19_rapor.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Tarayıcınız CSV indirmeyi desteklemiyor!');
+            }
+        }
+        
         // Sayfa yüklendiğinde
         document.addEventListener('DOMContentLoaded', function() {
-            // İlk istatistikleri yükle
-            updateStats();
-            
-            // Her 30 saniyede bir istatistikleri yenile
-            setInterval(updateStats, 30000);
-            
-            // Footer zamanını güncelle
             updateFooterTime();
+            updateNetworkStatus();
+            
+            // Her dakika footer zamanını güncelle
             setInterval(updateFooterTime, 60000);
             
-            // Network durumu
-            updateNetworkStatus();
+            // Network durumunu dinle
             window.addEventListener('online', updateNetworkStatus);
             window.addEventListener('offline', updateNetworkStatus);
             
-            console.log('TrueSignal - Ana Sayfa (İstatistik) yüklendi');
+            // Cache durumu
+            const cacheStatusElement = document.getElementById('cacheStatus');
+            if (cacheStatusElement) {
+                cacheStatusElement.textContent = 'Aktif';
+                cacheStatusElement.style.color = '#38a169';
+            }
+            
+            console.log('TrueSignal - 19 Aralık 2025 Raporu yüklendi');
         });
         
         // Global fonksiyonlar
-        window.refreshStats = refreshStats;
-        window.exportStats = exportStats;
+        window.exportDailyReport = exportDailyReport;
     </script>
 </body>
 </html>

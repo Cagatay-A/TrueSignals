@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrueSignal - Emir Tablosu</title>
+    <title>TrueSignal - Emir Takip Sistemi</title>
     
     <!-- CSS Dosyaları -->
     <link rel="stylesheet" href="styles.css">
@@ -118,63 +118,12 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
         
-        /* Table styles */
-        .table-container {
-            margin-top: 20px;
-        }
-        
-        .table-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .filter-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-        }
-        
-        .loading {
+        /* Loading styles */
+        #loading {
             text-align: center;
             padding: 50px;
-        }
-        
-        .error-message {
-            text-align: center;
-            padding: 50px;
-            color: #e53e3e;
-        }
-        
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .status-open {
-            background-color: #c6f6d5;
-            color: #22543d;
-        }
-        
-        .status-closed {
-            background-color: #fed7d7;
-            color: #742a2a;
-        }
-        
-        .positive {
-            color: #38a169;
-            font-weight: 600;
-        }
-        
-        .negative {
-            color: #e53e3e;
-            font-weight: 600;
+            font-size: 18px;
+            color: #666;
         }
         
         /* Responsive fixes */
@@ -205,15 +154,6 @@
             main {
                 padding: 1rem;
             }
-            
-            .table-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-controls {
-                flex-direction: column;
-            }
         }
     </style>
 </head>
@@ -221,18 +161,18 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-signal"></i> TrueSignal Emir Takip</h1>
-            <p class="subtitle">Gerçek Zamanlı Emir Tablosu</p>
+            <p class="subtitle">Gerçek Zamanlı Emir Takip Sistemi</p>
         </header>
         
-        <nav>
-            <ul>
-                <li><a href="index.html"><i class="fas fa-home"></i> Ana Sayfa</a></li>
-                <li><a href="2025-12-19.html" class="active"><i class="fas fa-table"></i> Emir Tablosu</a></li>
-                <li><a href="about.html"><i class="fas fa-info-circle"></i> Hakkında</a></li>
-                <li><a href="contact.html"><i class="fas fa-envelope"></i> İletişim</a></li>
-                <li><a href="404.html" title="404 Sayfasını Test Et"><i class="fas fa-exclamation-triangle"></i> 404 Test</a></li>
-            </ul>
-        </nav>
+<nav>
+    <ul>
+        <li><a href="index.html" class="active"><i class="fas fa-home"></i> Ana Sayfa</a></li>
+        <li><a href="about.html"><i class="fas fa-info-circle"></i> Hakkında</a></li>
+        <li><a href="contact.html"><i class="fas fa-envelope"></i> İletişim</a></li>
+        <li><a href="404.html" title="404 Sayfasını Test Et"><i class="fas fa-exclamation-triangle"></i> 404 Test</a></li>
+        <li><a href="2025-12-19.html"><i class="fas fa-calendar-day"></i> 19 Aralık 2025</a></li>
+    </ul>
+</nav>
         
         <main class="main-content">
             <div class="hero-section">
@@ -357,8 +297,7 @@
                 </div>
             </div>
             
-            <!-- Diğer bölümler (index.html'den gelen) -->
-            <div class="url-demo mt-4">
+            <div class="url-demo">
                 <h3><i class="fas fa-exchange-alt"></i> GitHub Pages URL Örnekleri</h3>
                 <p>Aşağıdaki URL'ler üzerinden JSON verilerine erişebilirsiniz:</p>
                 
@@ -379,17 +318,104 @@
                 </p>
             </div>
             
-            <!-- Hızlı Linkler -->
-            <div class="quick-links mt-4 text-center">
-                <a href="index.html" class="btn btn-primary">
-                    <i class="fas fa-chart-bar"></i> İstatistikleri Görüntüle
-                </a>
-                <a href="about.html" class="btn btn-outline-primary ms-2">
-                    <i class="fas fa-info-circle"></i> Sistem Hakkında
-                </a>
-                <a href="contact.html" class="btn btn-outline-primary ms-2">
-                    <i class="fas fa-envelope"></i> İletişim
-                </a>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h4>Otomatik Senkronizasyon</h4>
+                    <p>GitHub Actions ile her 5 dakikada bir veri senkronizasyonu</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>HTTPS Güvenliği</h4>
+                    <p>GitHub Pages üzerinden HTTPS güvenli bağlantı</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h4>Gerçek Veri</h4>
+                    <p>Local API'den alınan gerçek zamanlı veriler</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Responsive Tasarım</h4>
+                    <p>Tüm cihazlarda optimize edilmiş görünüm</p>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h3><i class="fas fa-cogs"></i> Nasıl Çalışır?</h3>
+                <p>1. <strong>GitHub Actions</strong> her 5 dakikada bir çalışır</p>
+                <p>2. <strong>Local API'nizden (192.168.1.3:3000)</strong> veri çeker</p>
+                <p>3. <strong>JSON formatında</strong> GitHub Pages'e kaydeder</p>
+                <p>4. <strong>Bu sayfa</strong> HTTPS üzerinden JSON'u okur ve tabloda gösterir</p>
+                <p>5. <strong>JavaScript</strong> her 30 saniyede bir verileri yeniler</p>
+                <p>6. <strong>Cache</strong> mekanizması ile çevrimdışı çalışabilir</p>
+            </div>
+            
+            <div class="warning-box">
+                <h3><i class="fas fa-exclamation-triangle"></i> Önemli Notlar</h3>
+                <p>• GitHub Actions workflow'unun etkin olduğundan emin olun</p>
+                <p>• Local API'nizin 192.168.1.3:3000 adresinde çalıştığından emin olun</p>
+                <p>• GitHub Pages ayarlarında "Enforce HTTPS" aktif olmalı</p>
+                <p>• JSON dosyaları public klasöründe olmalı</p>
+                <p>• Tarayıcı doğrudan local API'ye erişemez, sadece GitHub Pages üzerinden veri alır</p>
+            </div>
+            
+            <div class="test-links">
+                <h3 style="width: 100%; text-align: center; margin-bottom: 1rem;">Test Linkleri:</h3>
+                <a href="/about" class="test-link">/about</a>
+                <a href="/contact" class="test-link">/contact</a>
+                <a href="/404" class="test-link">/404 Test</a>
+                <a href="https://cagatay-a.github.io/TrueSignals/api-data.json" target="_blank" class="test-link">JSON Verileri</a>
+                <a href="https://github.com/cagatay-a/TrueSignals/actions" target="_blank" class="test-link">GitHub Actions</a>
+                <a href="https://github.com/cagatay-a/TrueSignals/settings/pages" target="_blank" class="test-link">Pages Ayarları</a>
+            </div>
+            
+            <div class="code-block">
+                <h3><i class="fas fa-file-code"></i> GitHub Actions Workflow</h3>
+                <pre><code>name: Fetch Data from Local API
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Her 5 dakikada bir
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  fetch-data:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Fetch API Data
+        run: |
+          curl -s "http://192.168.1.3:3000/api/emirler" > public/data.json
+          echo '{ "success": true, "lastFetch": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "source": "http://192.168.1.3:3000", "emirler": '$(cat public/data.json)' }' > public/api-data.json
+      
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add public/
+          git commit -m "Update API data" || echo "No changes"
+          git push</code></pre>
+                <p class="note">Bu workflow repository'nin .github/workflows dizininde olmalı.</p>
+            </div>
+            
+            <!-- Network Status -->
+            <div id="networkStatus" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-wifi-slash"></i> İnternet bağlantısı kesildi. Çevrimdışı modda çalışıyorsunuz.
             </div>
         </main>
         
@@ -404,11 +430,10 @@
                 <div class="footer-section">
                     <h4>Sayfalar</h4>
                     <ul>
-                        <li><a href="index.html">Ana Sayfa (İstatistik)</a></li>
-                        <li><a href="2025-12-19.html">Emir Tablosu</a></li>
-                        <li><a href="about.html">Hakkında</a></li>
-                        <li><a href="contact.html">İletişim</a></li>
-                        <li><a href="404.html">404 Test</a></li>
+                        <li><a href="/">Ana Sayfa</a></li>
+                        <li><a href="/about">Hakkında</a></li>
+                        <li><a href="/contact">İletişim</a></li>
+                        <li><a href="/404">404 Test</a></li>
                     </ul>
                 </div>
                 
@@ -604,7 +629,7 @@
             window.addEventListener('online', updateNetworkStatus);
             window.addEventListener('offline', updateNetworkStatus);
             
-            console.log('TrueSignal - Emir Tablosu sayfası yüklendi');
+            console.log('TrueSignal Emir Takip Sistemi yüklendi');
             
             // Filtre event listener'ları
             const statusFilter = document.getElementById('statusFilter');
