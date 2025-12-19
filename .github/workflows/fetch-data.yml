@@ -1,13 +1,11 @@
-
 name: Fetch Data from Local API
 
 on:
   schedule:
-    # Her 5 dakikada bir çalıştır
     - cron: '*/5 * * * *'
   push:
     branches: [ main ]
-  workflow_dispatch:  # Manuel çalıştırma için
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,12 +20,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Create public directory
-      run: |
-        echo "📁 Public klasörü oluşturuluyor..."
-        mkdir -p public
-    
-    - name: Fetch API Data with retry logic
+    - name: Fetch API Data
       id: fetch-data
       run: |
         echo "🔄 Local API'den veri çekiliyor..."
@@ -49,25 +42,21 @@ jobs:
           if [ "$API_RESPONSE" != "CURL_ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
             echo "✅ API'den veri alındı (${#API_RESPONSE} karakter)"
             
-            # DEĞİŞTİR (basit versiyon):
-            if [ ! -z "$API_RESPONSE" ]; then
-              echo "✅ API'den veri alındı (${#API_RESPONSE} karakter)"
+            # Basit JSON kontrolü
+            if [[ "$API_RESPONSE" == \{* ]] || [[ "$API_RESPONSE" == \[* ]]; then
+              echo "✅ JSON formatı geçerli"
               
-              # Basit JSON kontrolü (sadece ilk karaktere bak)
-              if [[ "$API_RESPONSE" == \{* || "$API_RESPONSE" == \[* ]]; then
-                echo "✅ JSON formatı geçerli"
-                
-                # Veriyi kaydet
-                echo "$API_RESPONSE" > data.json
-                
-                # Metadata ekle (python OLMADAN)
-                TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                cat > api-data.json << EOF
-            { "success": true, "lastFetch": "$TIMESTAMP", "source": "http://192.168.1.3:3000", "emirler": $API_RESPONSE }
-            EOF
+              # Verileri kaydet
+              TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
               
-                # İstatistikleri hesapla
-              COUNT=$(echo "$API_RESPONSE" | grep -o '"Id"' | wc -l)
+              # api-data.json oluştur (SADECE echo ile)
+              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > api-data.json
+              
+              # data.json oluştur
+              echo "$API_RESPONSE" > data.json
+              
+              # İstatistikleri hesapla
+              COUNT=$(echo "$API_RESPONSE" | grep -o '"EmirID"' | wc -l)
               echo "📊 $COUNT emir bulundu"
               
               echo "success=true" >> $GITHUB_OUTPUT
@@ -75,27 +64,24 @@ jobs:
               break
             else
               echo "❌ Geçersiz JSON formatı"
-            fi  
+            fi
           else
             echo "❌ API'ye bağlanılamadı (Deneme $i)"
             sleep 2
           fi
         done
         
-        # Eğer tüm denemeler başarısız olursa fallback veri oluştur
-        if [ ! -f public/data.json ]; then
+        # Eğer tüm denemeler başarısız olursa fallback
+        if [ ! -f api-data.json ]; then
           echo "⚠️ Fallback veri oluşturuluyor..."
-          
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          FALLBACK_DATA='{"success":false,"message":"API temporarily unavailable","emirler":[]}'
           
-          # Fallback veri
-          FALLBACK_DATA='[{"Id":999,"Sembol":"API_UNAVAILABLE","Tip":"INFO","Durum":"API Kapalı","EmirZamani":"'$(date +"%Y-%m-%d %H:%M:%S")'"}]'
-          
+          echo '{ "success": false, "lastFetch": "'$TIMESTAMP'", "source": "fallback", "message": "API temporarily unavailable", "emirler": [] }' > api-data.json
           echo "$FALLBACK_DATA" > data.json
-          echo '{ "success": false, "lastFetch": "'$TIMESTAMP'", "source": "fallback", "message": "API temporarily unavailable", "emirler": '"$FALLBACK_DATA"' }' > api-data.json
           
           echo "success=false" >> $GITHUB_OUTPUT
-          echo "count=1" >> $GITHUB_OUTPUT
+          echo "count=0" >> $GITHUB_OUTPUT
         fi
     
     - name: Show files
@@ -104,7 +90,7 @@ jobs:
         ls -la *.json
         echo ""
         echo "📄 api-data.json önizleme:"
-        head -c 300 api-data.json 2>/dev/null || echo "Dosya yok"
+        head -c 200 api-data.json 2>/dev/null || echo "Dosya yok"
         echo "..."
     
     - name: Commit and Push changes
@@ -120,11 +106,11 @@ jobs:
         # Değişiklikleri ekle
         git add api-data.json data.json
         
-        # HER ZAMAN COMMIT YAP (allow-empty ile)
-        git commit -m "📊 Veri Güncellendi (${{ steps.fetch-data.outputs.count || 0 }} emir) - $(date +'%H:%M:%S')" --allow-empty
+        # Commit yap
+        git commit -m "📊 Veri Güncellendi (${{ steps.fetch-data.outputs.count || 0 }} emir) - $(date +'%H:%M:%S')" || echo "No changes to commit"
         
         echo "🚀 Değişiklikler gönderiliyor..."
-        git push
+        git push || echo "Push failed or no changes"
         echo "✅ Gönderim tamamlandı"
     
     - name: Summary
