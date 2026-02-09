@@ -24,7 +24,7 @@ jobs:
       id: fetch-data
       run: |
         echo "🔄 Local API'den veri çekiliyor..."
-        echo "🌐 API URL: http://192.168.1.3:3000/api/emirler"
+        echo "🌐 API URL: http://192.168.1.8:3000/api/emirler"
         
         # Retry mekanizması (3 deneme)
         for i in {1..3}; do
@@ -36,7 +36,7 @@ jobs:
             --retry 1 \
             --retry-delay 2 \
             -H "Accept: application/json" \
-            "http://192.168.1.3:3000/api/emirler" || echo "CURL_ERROR")
+            "http://192.168.1.8:3000/api/emirler" || echo "CURL_ERROR")
           
           # Eğer curl başarılıysa devam et
           if [ "$API_RESPONSE" != "CURL_ERROR" ] && [ ! -z "$API_RESPONSE" ]; then
@@ -50,7 +50,7 @@ jobs:
               TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
               
               # api-data.json oluştur (SADECE echo ile)
-              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.3:3000", "emirler": '"$API_RESPONSE"' }' > api-data.json
+              echo '{ "success": true, "lastFetch": "'$TIMESTAMP'", "source": "http://192.168.1.8:3000", "emirler": '"$API_RESPONSE"' }' > api-data.json
               
               # data.json oluştur
               echo "$API_RESPONSE" > data.json
